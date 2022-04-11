@@ -1,6 +1,15 @@
 # IESA-Opt-N
 **IESA-Opt-National (Dutch database)**
-## From IESA-Opt to IESA-Opt-N
+## Running the model
+You need some pre-requistics before running the model:
+- The IESA-Opt-N model is written in AIMMS. Thus, you need to install this windows-based application to be able to run the model. You can obtain your free academic licence from this link: https://licensing.cloud.aimms.com/license/academic.htm
+- Although you can choose any mathematical solver for the solving procedure, the IESA-Opt-N model runs best with the Gurobi mathematical solver. You can obtain your free academic licence from this link: https://www.gurobi.com/academia/academic-program-and-licenses/
+
+Please feel free to contact us if you face issues. 
+
+## Model description
+
+### From IESA-Opt to IESA-Opt-N
 We use the IESA-Opt model implemented for the Netherlands to capture system-wide effects. This is a detailed open-source optimization ESM at the national level. IESA-Opt models investments of the energy system over the horizon from 2020 to 2050 in 5-year time steps while simultaneously accounting for hourly and daily operational constraints. The model's objective function minimizes the net present value of energy system costs to achieve total energy needs under certain techno-economic and policy constraints (e.g., a specific greenhouse gas (GHG) reduction target in a particular year). It is an open-source and flexible model that can be used for other regions or countries (e.g., the North Sea region).
 
 In the IESA-Opt model, the operation of the electricity sector of the Netherlands and other EU countries (including Norway and Switzerland) is balanced hourly. Since the model's scope is at the national level, power sector investments occur only in the Netherlands. At the same time, the power capacity mix of EU nodes is fixed as exogenous scenario parameters. 
@@ -9,7 +18,7 @@ The energy infrastructure is modeled in ten networks for different voltage level
 
 The IESA-Opt model reflects the emission constraints of the EU Emission Trading System (ETS), the non-ETS sectors, and the international navigation and aviation sectors. Since ETS sector emissions are traded in the EU ETS market, we assume an exogenous ETS emission price projection as a scenario parameter. Because the national emission reduction policy targets both ETS and non-ETS sectors, we set the aggregate national emission constraint on both sectors. If the constraint is binding, the model generates an aggregated national emission shadow price, equal to the marginal increase in the system cost if the aggregated emission constraint gets one unit tighter. 
 
-## The IESA-Opt model
+### The IESA-Opt-N model
 Although IESA-Opt comes with several capabilities, it has some limitations. Therefore, this study modifies the model in two directions: objective function definition and cross-border electricity trade. The modified model is IESA-Opt-N, which stands for Integrated Energy System Analyses – Optimization – National.  
 
 **Objective function definition**
