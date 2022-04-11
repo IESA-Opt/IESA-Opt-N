@@ -1,0 +1,2 @@
+This version includes peridos up to 2060
+it is based on the IESA-Opt version 3.17.6_mod6
