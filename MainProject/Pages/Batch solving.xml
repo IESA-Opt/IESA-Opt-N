@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2021-10-19 19:47:44">
+<Page Version="4000" TimeStamp="2022-07-14 09:33:39">
 	<PageEditSize Type="Specified">
 		<Size Width="1200" Height="800" />
 	</PageEditSize>
@@ -91,7 +91,7 @@
 	<PageObject Type="Scalar">
 		<Location top="282" left="480" bottom="312" right="960" />
 		<Hidden>OutputName_Hide</Hidden>
-		<TabOrder>10</TabOrder>
+		<TabOrder>11</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
@@ -104,7 +104,7 @@
 	</PageObject>
 	<PageObject Type="Button">
 		<Location top="540" left="264" bottom="588" right="414" />
-		<TabOrder>11</TabOrder>
+		<TabOrder>12</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
 		<ButtonType>Text</ButtonType>
 		<Title>"Back"</Title>
@@ -196,7 +196,7 @@
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
 		<Location top="322" left="246" bottom="354" right="426" />
-		<TabOrder>9</TabOrder>
+		<TabOrder>10</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
@@ -250,7 +250,7 @@
 	<PageObject Type="Selection Object">
 		<SelectionType>DropDownList</SelectionType>
 		<Location top="498" left="246" bottom="528" right="426" />
-		<TabOrder>12</TabOrder>
+		<TabOrder>13</TabOrder>
 		<Font GUID="F93179F1-B38A-4175-A80A-C5F1495320AF" Name="Content tiny" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="None" />
@@ -262,7 +262,7 @@
 	<PageObject Type="Selection Object">
 		<SelectionType>CheckBoxes</SelectionType>
 		<Location top="126" left="246" bottom="240" right="960" />
-		<TabOrder>14</TabOrder>
+		<TabOrder>15</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
@@ -299,7 +299,7 @@
 	</PageObject>
 	<PageObject Type="Scalar">
 		<Location top="366" left="588" bottom="396" right="636" />
-		<TabOrder>13</TabOrder>
+		<TabOrder>14</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
@@ -312,7 +312,7 @@
 	</PageObject>
 	<PageObject Type="Slider">
 		<Location top="360" left="636" bottom="390" right="966" />
-		<TabOrder>15</TabOrder>
+		<TabOrder>16</TabOrder>
 		<Contents>
 			<Minimum_value ID="2001">0</Minimum_value>
 			<Maximum_value ID="2002">NumCPU</Maximum_value>
@@ -341,7 +341,7 @@
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
 		<Location top="462" left="246" bottom="492" right="426" />
-		<TabOrder>8</TabOrder>
+		<TabOrder>9</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
@@ -357,6 +357,24 @@
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000080" />
 	</PageObject>
+	<PageObject Type="Text">
+		<Location top="468" left="438" bottom="492" right="582" />
+		<StaticText>¤Objective Function:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="462" left="588" bottom="492" right="780" />
+		<TabOrder>10</TabOrder>
+		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>ObjFunValue</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
 	<UsedReferences>
 		<Model>
 			<Symbol>AllSolvers</Symbol>
@@ -366,7 +384,6 @@
 			<Symbol>periods_selection</Symbol>
 			<Symbol>StringCPU</Symbol>
 			<Symbol>NumCPU</Symbol>
-			<Symbol>crossover_enabling</Symbol>
 			<Symbol>project_name</Symbol>
 			<Symbol>OutputFolderOptions</Symbol>
 			<Symbol>EnergyPricesOptions</Symbol>
@@ -375,6 +392,7 @@
 			<Symbol>InputFIlesSelection</Symbol>
 			<Symbol>OutputFolderValue</Symbol>
 			<Symbol>Ref2020Value</Symbol>
+			<Symbol>crossover_enabling</Symbol>
 			<Symbol>HourlyReportValue</Symbol>
 			<Symbol>SaveCaseValue</Symbol>
 			<Symbol>OutputFolderPrefix</Symbol>
@@ -389,6 +407,8 @@
 			<Symbol>RetreiveExistingOutputFolders</Symbol>
 			<Symbol>LoadCase_ref2020</Symbol>
 			<Symbol>BatchSolve</Symbol>
+			<Symbol>ObjFunOptions</Symbol>
+			<Symbol>ObjFunValue</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>

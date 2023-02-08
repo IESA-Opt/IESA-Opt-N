@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2021-01-20 04:54:28">
+<Page Version="4000" TimeStamp="2022-07-12 17:31:05">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] SystemCosts_techBal"</Title>
+	<Title>"[Data Page] vom_hourly"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>BA9EFC65-4B23-4E24-A51E-5B64C5F87EB8</ObjectUUID>
+		<ObjectUUID>B4806760-A9C4-4166-AE31-48455A6D094F</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">SystemCosts_techBal( n, toc, tb, p )</Identifier>
+				<Identifier ID="4110">vom_hourly( h, thin, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,11 +142,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>SystemCosts_techBal</Symbol>
+			<Symbol>h</Symbol>
 			<Symbol>p</Symbol>
-			<Symbol>tb</Symbol>
-			<Symbol>n</Symbol>
-			<Symbol>toc</Symbol>
+			<Symbol>thin</Symbol>
+			<Symbol>vom_hourly</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>

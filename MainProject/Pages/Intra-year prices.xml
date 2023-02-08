@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2021-10-19 19:47:44">
+<Page Version="4000" TimeStamp="2022-07-14 09:33:39">
 	<Location top="32" left="70" bottom="638" right="1276" />
 	<PageEditSize Type="Specified">
 		<Size Width="1200" Height="800" />
@@ -130,7 +130,7 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="462" left="240" bottom="510" right="390" />
+		<Location top="498" left="240" bottom="546" right="390" />
 		<TabOrder>5</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
 		<ButtonType>Text</ButtonType>
@@ -155,7 +155,7 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="462" left="618" bottom="510" right="960" />
+		<Location top="498" left="618" bottom="546" right="960" />
 		<Hidden>RunButton_Hide</Hidden>
 		<TabOrder>7</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
@@ -207,7 +207,7 @@
 	<PageObject Type="Scalar">
 		<Location top="324" left="588" bottom="354" right="636" />
 		<Hidden>minmaxTol_Hide</Hidden>
-		<TabOrder>9</TabOrder>
+		<TabOrder>10</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
@@ -226,7 +226,7 @@
 	</PageObject>
 	<PageObject Type="Scalar">
 		<Location top="360" left="588" bottom="390" right="636" />
-		<TabOrder>10</TabOrder>
+		<TabOrder>11</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
@@ -239,7 +239,7 @@
 	</PageObject>
 	<PageObject Type="Slider">
 		<Location top="354" left="636" bottom="384" right="966" />
-		<TabOrder>11</TabOrder>
+		<TabOrder>12</TabOrder>
 		<Contents>
 			<Minimum_value ID="2001">0</Minimum_value>
 			<Maximum_value ID="2002">NumCPU</Maximum_value>
@@ -260,7 +260,7 @@
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="474" left="702" bottom="504" right="882" />
+		<Location top="510" left="702" bottom="540" right="882" />
 		<StaticText>First load the case!</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
@@ -280,7 +280,7 @@
 	<PageObject Type="Selection Object">
 		<SelectionType>DropDownList</SelectionType>
 		<Location top="366" left="210" bottom="396" right="390" />
-		<TabOrder>15</TabOrder>
+		<TabOrder>13</TabOrder>
 		<Font GUID="F93179F1-B38A-4175-A80A-C5F1495320AF" Name="Content tiny" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="None" />
@@ -298,7 +298,7 @@
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
 		<Location top="402" left="210" bottom="432" right="390" />
-		<TabOrder>8</TabOrder>
+		<TabOrder>9</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
@@ -307,13 +307,30 @@
 			<Identifier>crossover_enabling</Identifier>
 		</ExplicitIdentifier>
 	</PageObject>
+	<PageObject Type="Text">
+		<Location top="450" left="72" bottom="474" right="216" />
+		<StaticText>¤Objective Function:</StaticText>
+		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
+		<TextColor RGB="#000000" />
+	</PageObject>
+	<PageObject Type="Selection Object">
+		<SelectionType>RadioButtons</SelectionType>
+		<Location top="444" left="210" bottom="474" right="402" />
+		<TabOrder>10</TabOrder>
+		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
+		<TextShown>ElementName</TextShown>
+		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
+		<BackgroundColor RGB="#ffffff" />
+		<ExplicitIdentifier>
+			<Identifier>ObjFunValue</Identifier>
+		</ExplicitIdentifier>
+	</PageObject>
 	<UsedReferences>
 		<Model>
 			<Symbol>AllSolvers</Symbol>
 			<Symbol>periods_selection</Symbol>
 			<Symbol>StringCPU</Symbol>
 			<Symbol>NumCPU</Symbol>
-			<Symbol>crossover_enabling</Symbol>
 			<Symbol>techStock_tolerance</Symbol>
 			<Symbol>project_name</Symbol>
 			<Symbol>periods_window</Symbol>
@@ -325,6 +342,7 @@
 			<Symbol>PricesValue</Symbol>
 			<Symbol>IntrayearValue</Symbol>
 			<Symbol>DataCaseLocation</Symbol>
+			<Symbol>crossover_enabling</Symbol>
 			<Symbol>HourlyReportValue</Symbol>
 			<Symbol>OutputFolderName</Symbol>
 			<Symbol>SolverChoiceIYP</Symbol>
@@ -337,6 +355,8 @@
 			<Symbol>Update_ipss</Symbol>
 			<Symbol>LoadCase_fromFile</Symbol>
 			<Symbol>IntraYearPrices</Symbol>
+			<Symbol>ObjFunOptions</Symbol>
+			<Symbol>ObjFunValue</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>
