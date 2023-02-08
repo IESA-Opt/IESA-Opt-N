@@ -1,2 +1,2 @@
-This version includes peridos up to 2060
-it is based on the IESA-Opt version 3.17.6_mod6
+This version includes peridos up to 2050. Previous versions included periods up to 2060.
+It is based on merged changes from v1.3 and v4.2
