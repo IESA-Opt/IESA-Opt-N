@@ -91,13 +91,13 @@ Model IESA_Opt_Package {
 				Index: p, ip, jp;
 				Property: ElementsAreNumerical;
 				InitialData: {
-					{2020,2025,2030,2035,2040,2045,2050,2055,2060}
+					{2020,2025,2030,2035,2040,2045,2050}
 				}
 			}
 			ElementParameter hoursPer_day {
 				Range: hoursPer_dayOptions;
 				Property: Constant;
-				InitialData: '4';
+				InitialData: '1';
 			}
 			ElementParameter hoursindayPer_hour {
 				IndexDomain: h;
@@ -189,6 +189,15 @@ Model IESA_Opt_Package {
 			Parameter daysPer_range {
 				Definition: 3;
 			}
+			Parameter transition_interval {
+				Definition: val(last(periods)) - val(first(periods)) + 10;
+			}
+			Parameter modelled_transition_interval {
+				Definition: val(last(periods_selection)) - val(first(periods_selection)) + last_period_length;
+			}
+			Parameter last_period_length {
+				InitialData: 10;
+			}
 		}
 		DeclarationSection System_info {
 			Set typesInfo_tech {
@@ -218,6 +227,13 @@ Model IESA_Opt_Package {
 				Index: tff, itff;
 				Definition: {
 					{t in tech_hourlyCHPflex}+{t in tech_shedding}+{t in tech_flexible}
+				}
+			}
+			Set tech_imports {
+				SubsetOf: tech_balancers;
+				Index: tim, itim, jtim;
+				Definition: {
+					{tb | (StringOccurrences(tech_name(tb),'Import')*IEM_node(nodePer_techBal(tb)))>0}
 				}
 			}
 			Set energy_labels {
@@ -451,6 +467,27 @@ Model IESA_Opt_Package {
 				SubsetOf: activities_solve;
 				Index: ae, iae;
 				Definition: {
+					{as |activityType_act(as)='Energy'} + {as |activityType_act(as)='Fix Energy'}
+				}
+			}
+			Set activities_fixenergy {
+				SubsetOf: activities_solve;
+				Index: af, iaf, jaf;
+				Definition: {
+					{as |activityType_act(as)='Fix Energy'}
+				}
+			}
+			Set activities_materialconversion {
+				SubsetOf: activities_solve;
+				Index: amc, iamc, jamc;
+				Definition: {
+					{as | activityType_act(as)='Material conversion'}
+				}
+			}
+			Set activities_energynonfixed {
+				SubsetOf: activities_solve;
+				Index: aen, iaen, jaen;
+				Definition: {
 					{as |activityType_act(as)='Energy'}
 				}
 			}
@@ -491,6 +528,13 @@ Model IESA_Opt_Package {
 			}
 			Set nodes {
 				Index: n, jn;
+			}
+			Set nodes_IEM {
+				SubsetOf: nodes;
+				Index: ni, ini, jni;
+				Definition: {
+					{n | IEM_node(n)=1}
+				}
 			}
 			ElementParameter dispatchType_act {
 				IndexDomain: a;
@@ -536,11 +580,20 @@ Model IESA_Opt_Package {
 			Parameter emissionTarget {
 				IndexDomain: (n,p);
 			}
+			Parameter emissionTarget_cum {
+				IndexDomain: n;
+			}
 			Parameter emmisionTarget_bin {
 				IndexDomain: a;
 				Range: binary;
 			}
 			Parameter roomFor_negative;
+			Parameter cumulative_emissions {
+				IndexDomain: n;
+			}
+			Parameter cumulative_CO2storage {
+				IndexDomain: n;
+			}
 			Parameter XC_TransmissionLoss;
 			Parameter HVtoMV_TransformerLoss;
 			Parameter MVtoLV_TransformerLoss;
@@ -581,7 +634,7 @@ Model IESA_Opt_Package {
 				Range: nonnegative;
 			}
 			Constraint balance_activities {
-				IndexDomain: (as,ps);
+				IndexDomain: (as,ps) | not (as in activities_fixenergy);
 				Definition: {
 					sum[tb, tech_use(tb,ps)*activity_balances(tb,as,ps)]+  !Reference activity balance
 					sum[tf, sum[h, (deltaQ_UP(h,tf,ps)+deltaQ_DW(h,tf,ps))]*dQ_hourly(tf,as)]+ !Impact of flexibility in hourly activities
@@ -592,6 +645,28 @@ Model IESA_Opt_Package {
 					sum[ts, sum[h, deltaS_shed(h,ts,ps)]*activity_balances(ts,as,ps)] !Impact of shedding load
 					-sum[tw, sum[h, deltaW_UP(h,tw,ps)]*dW_hourly(tw,as)] !Demand increase due to pumping electricity in reservoirs
 					>=activities_netVolumes(as,ps) !Exogenous drivers
+					!plus a comment
+				}
+			}
+			Constraint balance_activitiesFix {
+				IndexDomain: (af,ps);
+				Definition: {
+					sum[tb, tech_use(tb,ps)*activity_balances(tb,af,ps)]+  !Reference activity balance
+					sum[tf, sum[h, (deltaQ_UP(h,tf,ps)+deltaQ_DW(h,tf,ps))]*dQ_hourly(tf,af)]+ !Impact of flexibility in hourly activities
+					!sum[tg, sum[d, (deltaB_DW(d,tg,ps)-deltaB_UP(d,tg,ps))]*activity_balances(tg,as,ps)]+ !Impact of gas buffers energy consumption
+					sum[tk, sum[h, deltaU_CHP(h,tk,ps)]*activity_balances(tk,af,ps)]+ !Impact of use deviation of CHPs
+					sum[tk, sum[h, deltaP_CHP(h,tk,ps)]*dP_electricity(tk,af)]+ !Impact in power of power output ratio deviation of CHPs
+					sum[tk, sum[h, -CHP_eta(tk)*deltaP_CHP(h,tk,ps)/CHP_eps(tk,ps)]*dP_heat(tk,af)]+ !Impact in heat of power output ratio deviation of CHPs
+					sum[ts, sum[h, deltaS_shed(h,ts,ps)]*activity_balances(ts,af,ps)] !Impact of shedding load
+					-sum[tw, sum[h, deltaW_UP(h,tw,ps)]*dW_hourly(tw,af)] !Demand increase due to pumping electricity in reservoirs
+					=activities_netVolumes(af,ps) !Exogenous drivers
+				}
+			}
+			Constraint balance_activitiesmatconv {
+				IndexDomain: (amc,ps);
+				Definition: {
+					sum[tb, tech_use(tb,ps)*activity_balances(tb,amc,ps)]  !Reference activity balance
+					=activities_netVolumes(amc,ps) !Exogenous drivers
 				}
 			}
 			Constraint capacity_technologies {
@@ -609,6 +684,24 @@ Model IESA_Opt_Package {
 					sum[tb, tech_use(tb,ps)*(nodePer_act(activityPer_tech(tb))=n)*(activityPer_tech(tb) in activities_target)]
 					!The forced constraint
 					<=emissionTarget(n,ps)
+				}
+			}
+			Constraint emission_targetCum {
+				IndexDomain: ni;
+				Definition: {
+					!The sum of the use of all the emissions released to air in each node
+					sum[(tb,ps), tech_use(tb,ps)*(nodePer_act(activityPer_tech(tb))=ni)*(activityPer_tech(tb) in activities_target)*period_weightUSE(ps)*transition_interval]
+					!The forced constraint
+					<=emissionTarget_cum(ni)
+				}
+			}
+			Constraint storageCO2_cumulative {
+				IndexDomain: ni;
+				Definition: {
+					!The sum of the use of all the CO2 stored in each node
+					sum[(tb,ps), tech_use(tb,ps)*(tech_subsector(tb)="CCUS Storage")*period_weightUSE(ps)*transition_interval]
+					!The forced constraint
+					<=cumulative_CO2storage(ni)
 				}
 			}
 		}
@@ -667,11 +760,11 @@ Model IESA_Opt_Package {
 				IndexDomain: pss;
 				Definition: {
 					if (pss=last(periods_selection)) then
-						(10+(val(pss)-val(pss-1))/2)/(val(last(periods_selection))-val(first(periods_selection))+10) !For the last period
+						(10+(val(pss)-val(pss-1))/2)/(val(last(periods_selection))-val(first(periods_selection))+last_period_length) !For the last period
 					elseif (pss=first(periods_selection)) then
-						((val(pss+1)-val(pss))/2)/(val(last(periods_selection))-val(first(periods_selection))+10) !For the first period
+						((val(pss+1)-val(pss))/2)/(val(last(periods_selection))-val(first(periods_selection))+last_period_length) !For the first period
 					else
-						((val(pss+1)-val(pss-1))/2)/(val(last(periods_selection))-val(first(periods_selection))+10) !For all intermediate periods
+						((val(pss+1)-val(pss-1))/2)/(val(last(periods_selection))-val(first(periods_selection))+last_period_length) !For all intermediate periods
 					endif
 				}
 			}
@@ -691,13 +784,16 @@ Model IESA_Opt_Package {
 			Parameter inv_cost {
 				IndexDomain: (t,p);
 			}
+			Parameter retro_cost {
+				IndexDomain: (it,jt);
+			}
 			Parameter decom_frac {
 				IndexDomain: t;
 			}
 			Parameter fom_cost {
 				IndexDomain: (t,p);
 			}
-			Parameter depreciation_rate {
+			Parameter WACC {
 				IndexDomain: t;
 			}
 			Parameter social_discount_rate {
@@ -718,11 +814,14 @@ Model IESA_Opt_Package {
 			Parameter ec_lifetime {
 				IndexDomain: t;
 			}
-			Parameter annuity_fac {
+			Parameter CRF {
 				IndexDomain: t;
 				Definition: {
-					depreciation_rate(t)/(((1+depreciation_rate(t))^(-construction_time(t)))-((1+depreciation_rate(t))^(-ec_lifetime(t))))
-					!depreciation_rate(t)/(1-(1+depreciation_rate(t))^(-tec_lifetime(t)))
+					[(1-(1+WACC(t))^(-1))/(1-(1+WACC(t))^(-ec_lifetime(t)))]*(1+WACC(t))^(0.5)
+					!First element is CRF with discounting to beginning of year, followed by correction for mid-year discounting. Based on TIMES Documentation Part II, Section 6.2.12
+					
+					!WACC(t)/[1-((1+WACC(t))^(-construction_time(t)-ec_lifetime(t)))] Second version - now replaced with mid-year discounting by Kira
+					!depreciation_rate(t)/(1-(1+depreciation_rate(t))^(-tec_lifetime(t))) Original - then construction time added. Corrected in v4.3 by Kira
 				}
 			}
 			Parameter tec_lifetime {
@@ -904,7 +1003,7 @@ Model IESA_Opt_Package {
 				SubsetOf: activities_solve;
 				Index: ah, iah;
 				Definition: {
-					{as | dispatchType_act(as)='hourly'}
+					{as | dispatchType_act(as)='hourly'} + {as | dispatchType_act(as)='hourly-interconnected'}
 				}
 			}
 			Set activities_indirect {
@@ -912,6 +1011,13 @@ Model IESA_Opt_Package {
 				Index: ap, iap;
 				Definition: {
 					{as | dispatchType_act(as)='hourly-indirect'}
+				}
+			}
+			Set activities_interconnected {
+				SubsetOf: activities_hour;
+				Index: ain, iain, jain;
+				Definition: {
+					{ah | dispatchType_act(ah)='hourly-interconnected'}
 				}
 			}
 			Set tech_Operation {
@@ -948,6 +1054,13 @@ Model IESA_Opt_Package {
 				Index: thr;
 				Definition: {
 					{t | ramping(t)>0}
+				}
+			}
+			Set tech_hourlyInterconnection {
+				SubsetOf: tech_hourlyDispatch;
+				Index: thin, ithin, jthin;
+				Definition: {
+					{th | tech_subsector(th)="Inland generation"}
 				}
 			}
 			ElementParameter processType_tech {
@@ -991,6 +1104,17 @@ Model IESA_Opt_Package {
 						hourly_profilesRead(h,yp)
 					endif
 				}
+			}
+			Parameter interconnected_prices {
+				IndexDomain: (h,ain,p);
+				Definition: sum[ho, interconnected_pricesOrig(ho,ain,p)*(hoursPer_hourOrig(ho)=h)]/(24/hoursPer_day);
+			}
+			Parameter interconnected_pricesOrig {
+				IndexDomain: (ho,ain,p);
+			}
+			Parameter vom_hourly {
+				IndexDomain: (h,thin,p);
+				Definition: interconnected_prices(h,activityPer_techOrig(thin),p);
 			}
 			Parameter baseload_treshold {
 				InitialData: 0.05;
@@ -1700,7 +1824,7 @@ Model IESA_Opt_Package {
 					tech_useHourly(h,tw,ps)<=techStock(tw,ps)*hourly_profiles(h,'Flat')*GWtoPJ_y !(HARDCODED)
 				}
 			}
-			Constraint cummulativeUP_dQtfe {
+			Constraint cumulativeUP_dQtfe {
 				IndexDomain: (q,tfe,ps);
 				Definition: {
 					!sum[ih | 6*q>=ih>6*(q-1), deltaQ_UP(ih,tfe,ps)] >=
@@ -1709,7 +1833,7 @@ Model IESA_Opt_Package {
 					sum[ih | hoursPer_quarter*q>=ih>hoursPer_quarter*(q-1)+1, hourly_profiles(ih,profileType_tech(tfe))*activity_balances(tfe,flex_activity(tfe),ps)*tech_use(tfe,ps)]
 				}
 			}
-			Constraint cummulativeUP_dQtfs {
+			Constraint cumulativeUP_dQtfs {
 				IndexDomain: (d,tfs,ps);
 				Definition: {
 					!sum[ih | 24*(d+flex_range(tfs)-1)>=ih>24*(d-1), deltaQ_UP(ih,tfs,ps)] >=
@@ -1718,7 +1842,7 @@ Model IESA_Opt_Package {
 					sum[ih | dayPer_hour(ih)=d, hourly_profiles(ih,profileType_tech(tfs))*activity_balances(tfs,flex_activity(tfs),ps)*tech_use(tfs,ps)]
 				}
 			}
-			Constraint cummulativeDW_dQtfs {
+			Constraint cumulativeDW_dQtfs {
 				IndexDomain: (d,tfs,ps);
 				Definition: {
 					!sum[ih | 24*(d+flex_range(tfs)-1)>=ih>24*(d-1), deltaQ_DW(ih,tfs,ps)] <=
@@ -1727,7 +1851,7 @@ Model IESA_Opt_Package {
 					sum[ih | dayPer_hour(ih)=d, -hourly_profiles(ih,profileType_tech(tfs))*activity_balances(tfs,flex_activity(tfs),ps)*tech_use(tfs,ps)]
 				}
 			}
-			Constraint cummulativeDW_dQtfe {
+			Constraint cumulativeDW_dQtfe {
 				IndexDomain: (q,tfe,ps);
 				Definition: {
 					!sum[ih | 6*q>=ih>6*(q-1), deltaQ_DW(ih,tfe,ps)] <=
@@ -1736,11 +1860,11 @@ Model IESA_Opt_Package {
 					sum[ih | hoursPer_quarter*q>=ih>hoursPer_quarter*(q-1), -hourly_profiles(ih,profileType_tech(tfe))*activity_balances(tfe,flex_activity(tfe),ps)*tech_use(tfe,ps)]
 				}
 			}
-			Constraint cummulativeS_dQtfb {
+			Constraint cumulativeS_dQtfb {
 				IndexDomain: (h,tfb,ps);
 				Definition: deltaQ_S(h,tfb,ps)>=-techStock(tfb,ps)*flex_storage(tfb)*flex_capacity(tfb);
 			}
-			Constraint cummulativeS_dQtfv {
+			Constraint cumulativeS_dQtfv {
 				IndexDomain: (h,tfv,ps);
 				Definition: {
 					deltaQ_S(h,tfv,ps)>=-
@@ -1750,7 +1874,7 @@ Model IESA_Opt_Package {
 					hourly_profiles(ih,profileType_EVuse(tfv))])
 				}
 			}
-			Constraint cummulativeS_dW {
+			Constraint cumulativeS_dW {
 				IndexDomain: (h,tw,ps);
 				Definition: {
 					deltaW_S(h,tw,ps)<=techStock(tw,ps)*phs_storage(tw)*GWhtoPJ !(HARDCODED)
@@ -1843,12 +1967,22 @@ Model IESA_Opt_Package {
 		}
 	}
 	Section Optimization_section {
+		Procedure CheckMemoryMPs {
+			Body: {
+				for IndexGeneratedMathematicalPrograms do
+					MemoryUseMPs(IndexGeneratedMathematicalPrograms) := GMP::Instance::GetMemoryUsed(IndexGeneratedMathematicalPrograms);
+					endfor;
+			}
+		}
 		DeclarationSection Optimization_declaration {
 			Set periods_selection {
 				SubsetOf: periods;
 				Index: pss, ipss;
 				Property: ElementsAreLabels;
 				OrderBy: pss;
+				InitialData: {
+					{2020,2030}
+				}
 			}
 			Set activeVariables_planning {
 				SubsetOf: AllVariables;
@@ -1874,31 +2008,10 @@ Model IESA_Opt_Package {
 				SubsetOf: AllConstraints;
 				Definition: {
 					data 
-					    { balance_activities      , capacity_technologies   , emission_target         , decomStock              ,
-					      techStock               , actStock_constraints    , minStock_constraints    , maxStock_constraints    ,
-					      actInv_constraints      , techInv_constraints     , retrofit_constraint     , decom_constraint        ,
-					      balance_activitiesHourly, balance_yearlyhourly    , capacity_techHourly     , rampingUP_techHourly    ,
-					      rampingDW_techHourly    , deltaB_S                , balance_activitiesDaily , balance_yearlyDaily     ,
-					      capacity_techDaily      , balanceY_dB             , capacityUP_dB           , capacityDW_dB           ,
-					      cummulativeS_dB         , balanceH_deltaHchp      , balanceD_deltaHchp      , balanceW_deltaHchp      ,
-					      capacityUP_deltaUchp    , capacityDW_deltaUchp    , capacityUP_deltaPchp    , capacityDW_deltaPchp    ,
-					      deltaQ_S                , deltaQd_UP              , deltaQd_DW              , deltaW_S                ,
-					      balanceH_deltaS         , balanceW_deltaS         , capacity_deltaS         , sufficiency_deltaS      ,
-					      balanceQ_deltaQtfe      , balanceD_deltaQd        , balanceR_deltaQd        , balanceW_deltaQd        ,
-					      balanceM_deltaQd        , balanceS_deltaQd        , balanceB_deltaQd        , balanceY_deltaQd        ,
-					      capacityUP_dQtfe        , capacityUP_dQtfs        , capacityUP_dQtfb        , capacityUP_dQtfv        ,
-					      capacityUP_dW           , capacityDW_dQtfe        , capacityDW_dQtfs        , capacityDW_dQtfb        ,
-					      capacityDW_dQtfvc       , capacityDW_dQtfvg       , capacityDW_dW           , cummulativeUP_dQtfe     ,
-					      cummulativeUP_dQtfs     , cummulativeDW_dQtfs     , cummulativeDW_dQtfe     , cummulativeS_dQtfb      ,
-					      cummulativeS_dQtfv      , cummulativeS_dW         , nonPos_Shed             , infraVol_H              ,
-					      infraVol_D              , totalCosts_planning     }
-				}
-			}
-			Set activeConstraints_operation {
-				SubsetOf: AllConstraints;
-				Definition: {
-					data 
-					    { balance_activities      , capacity_technologies   , emission_target         , balance_activitiesHourly,
+					    { balance_activities      , balance_activitiesFix   , capacity_technologies   , emission_target         ,
+					      emission_targetCum      , storageCO2_cumulative   , decomStock              , techStock               ,
+					      actStock_constraints    , minStock_constraints    , maxStock_constraints    , actInv_constraints      ,
+					      techInv_constraints     , retrofit_constraint     , decom_constraint        , balance_activitiesHourly,
 					      balance_yearlyhourly    , capacity_techHourly     , rampingUP_techHourly    , rampingDW_techHourly    ,
 					      deltaB_S                , balance_activitiesDaily , balance_yearlyDaily     , capacity_techDaily      ,
 					      balanceY_dB             , capacityUP_dB           , capacityDW_dB           , cummulativeS_dB         ,
@@ -1910,28 +2023,52 @@ Model IESA_Opt_Package {
 					      balanceS_deltaQd        , balanceB_deltaQd        , balanceY_deltaQd        , capacityUP_dQtfe        ,
 					      capacityUP_dQtfs        , capacityUP_dQtfb        , capacityUP_dQtfv        , capacityUP_dW           ,
 					      capacityDW_dQtfe        , capacityDW_dQtfs        , capacityDW_dQtfb        , capacityDW_dQtfvc       ,
-					      capacityDW_dQtfvg       , capacityDW_dW           , cummulativeUP_dQtfe     , cummulativeUP_dQtfs     ,
-					      cummulativeDW_dQtfs     , cummulativeDW_dQtfe     , cummulativeS_dQtfb      , cummulativeS_dQtfv      ,
-					      cummulativeS_dW         , nonPos_Shed             , infraVol_H              , infraVol_D              ,
+					      capacityDW_dQtfvg       , capacityDW_dW           , nonPos_Shed             , infraVol_H              ,
+					      infraVol_D              , totalCosts_planning     }
+				}
+			}
+			Set activeConstraints_operation {
+				SubsetOf: AllConstraints;
+				Definition: {
+					data 
+					    { balance_activities      , balance_activitiesFix   , capacity_technologies   , emission_target         ,
+					      emission_targetCum      , storageCO2_cumulative   , balance_activitiesHourly, balance_yearlyhourly    ,
+					      capacity_techHourly     , rampingUP_techHourly    , rampingDW_techHourly    , deltaB_S                ,
+					      balance_activitiesDaily , balance_yearlyDaily     , capacity_techDaily      , balanceY_dB             ,
+					      capacityUP_dB           , capacityDW_dB           , cummulativeS_dB         , balanceH_deltaHchp      ,
+					      balanceD_deltaHchp      , balanceW_deltaHchp      , capacityUP_deltaUchp    , capacityDW_deltaUchp    ,
+					      capacityUP_deltaPchp    , capacityDW_deltaPchp    , deltaQ_S                , deltaQd_UP              ,
+					      deltaQd_DW              , deltaW_S                , balanceH_deltaS         , balanceW_deltaS         ,
+					      capacity_deltaS         , sufficiency_deltaS      , balanceQ_deltaQtfe      , balanceD_deltaQd        ,
+					      balanceR_deltaQd        , balanceW_deltaQd        , balanceM_deltaQd        , balanceS_deltaQd        ,
+					      balanceB_deltaQd        , balanceY_deltaQd        , capacityUP_dQtfe        , capacityUP_dQtfs        ,
+					      capacityUP_dQtfb        , capacityUP_dQtfv        , capacityUP_dW           , capacityDW_dQtfe        ,
+					      capacityDW_dQtfs        , capacityDW_dQtfb        , capacityDW_dQtfvc       , capacityDW_dQtfvg       ,
+					      capacityDW_dW           , nonPos_Shed             , infraVol_H              , infraVol_D              ,
 					      totalCosts_operation    }
 				}
 			}
 			Variable totalCosts_planning {
 				Range: free;
 				Definition: {
-					sum[ps, 
-						social_discount_factor(ps)*
+					!Objective function, revised from previous versions
+						sum[ps, 
+						social_discount_factor(ps)*							!social discount rate assigns weights to different periods
 						(
 							! CAPEX
-							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
-							(cap_investments(t,jp)*inv_cost(t,jp)*annuity_fac(t)				!New invetments
-							+sum[it, retrofitting(it,t,jp)*inv_cost(t,jp)*annuity_fac(t)]			!Retroffiting aditions
-							-sum[it, retrofitting(t,it,jp)*inv_cost(t,jp)*annuity_fac(t)]		!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
-							-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t))] 	!Recovered costs of decommisioning forwarded to the substitute investment
+							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*					!lifetime matrix
+							(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t))]				!New investments
+					
+							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*(
+							sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input). Epsilon set to 0 to save memory, can be removed later if not needed.
+							)]
+							!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t) 	!Salvage value at end of lifetime (temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
+					
 							! FOM
-							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fix costs
+							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fixed costs
 							! VOM
 							+sum[t, tech_use(t,ps)*(vom_cost(t,ps)+1e-6)] !Variable costs (including fuel costs)
+							+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+1e-6)]!Electricity costs of interconnected nodes
 							+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
 							!Misc
 							+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
@@ -1941,37 +2078,17 @@ Model IESA_Opt_Package {
 					]
 				}
 			}
-			Parameter totalCosts_planning_old {
-				Definition: {
-					sum[ps, (
-						sum[t, cap_investments(t,ps)*(annuity_fac(t)*inv_cost(t,ps)+1e-6)] !Investment costs
-						-sum[t, eco_decommisioning(t,ps)*(annuity_fac(t)*inv_cost(t,ps)*(1-decom_frac(t))-1e-6)] !Economic decommisioning costs
-						+sum[(it,jt), retrofitting(it,jt,ps)*annuity_fac(jt)*(inv_cost(jt,ps)-inv_cost(it,ps))] !Retrofitting costs
-					
-						+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fix costs
-					
-						+sum[t, tech_use(t,ps)*(vom_cost(t,ps)+1e-6)] !Variable costs (including fuel costs)
-						+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
-					
-						+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
-						+1e-6*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
-					
-						)*period_weightUSE(ps)]
-				}
-			}
 			Variable totalCosts_operation {
 				Range: free;
 				Definition: {
 					sum[ps, (
 						sum[t, tech_use(t,ps)*vom_cost(t,ps)] !Variable costs (including fuel costs)
+						+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+p_epsilon)]!Electricity costs of interconnected nodes
 						+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
 						!+0.000001*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
 						!+0.000001*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
-						)*period_weightUSE(ps)]
+						)*social_discount_factor(ps)]
 				}
-			}
-			Constraint UnboundedCheck {
-				Definition: totalCosts_planning >= -1e10;
 			}
 			MathematicalProgram LeastCostPlanning {
 				Objective: totalCosts_planning;
@@ -1986,6 +2103,156 @@ Model IESA_Opt_Package {
 				Constraints: activeConstraints_operation;
 				Variables: activeVariables_operation;
 				Type: Automatic;
+			}
+			Parameter p_epsilon {
+				Definition: 0;
+			}
+			Parameter PtotalCosts_planning {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						period_weightUSE(ps)*modelled_transition_interval*					!Accounts for the fact that only single years of costs are included rather than totals. Period weight defines share of period in total interval, transition interval is the length of the scenario time horizon
+						(
+							! CAPEX
+							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
+							(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New investments
+							+sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+							!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t) 	!Salvage value at end of lifetime (temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
+							)]
+							! FOM
+							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fixed costs
+							! VOM
+							+sum[t, tech_use(t,ps)*(vom_cost(t,ps)+p_epsilon)] !Variable costs (including fuel costs)
+							+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+1e-6)]!Electricity costs of interconnected nodes
+							+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
+							!Misc
+							+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
+							+1e-6*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
+					
+						)
+					]
+				}
+			}
+			Parameter capCosts_planning {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						period_weightUSE(ps)*modelled_transition_interval*					!Accounts for the fact that only single years of costs are included rather than totals. Period weight defines share of period in total interval, transition interval is the length of the scenario time horizon
+						(
+							! CAPEX
+							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
+							(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New investments
+							+sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+							!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t) 	!Salvage value at end of lifetime (temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
+							)]
+						)
+					]
+				}
+			}
+			Parameter fomCosts_planning {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						period_weightUSE(ps)*modelled_transition_interval*					!Accounts for the fact that only single years of costs are included rather than totals. Period weight defines share of period in total interval, transition interval is the length of the scenario time horizon
+						(
+							! FOM
+							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fixed costs
+					
+						)
+					]
+				}
+			}
+			Parameter vomCosts_planning {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						period_weightUSE(ps)*modelled_transition_interval*					!Accounts for the fact that only single years of costs are included rather than totals. Period weight defines share of period in total interval, transition interval is the length of the scenario time horizon
+						(
+							! VOM
+							+sum[t, tech_use(t,ps)*(vom_cost(t,ps)+1e-6)] !Variable costs (including fuel costs)
+							+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+1e-6)]!Electricity costs of interconnected nodes
+							+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
+							!Misc
+							+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
+							+1e-6*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
+					
+						)
+					]
+				}
+			}
+			Parameter PtotalCosts_planning_single {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						(
+							! CAPEX
+							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
+							(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New investments
+							+sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+							!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t) 	!Salvage value at end of lifetime (temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
+							)]
+							! FOM
+							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fixed costs
+							! VOM
+							+sum[t, tech_use(t,ps)*(vom_cost(t,ps)+1e-6)] !Variable costs (including fuel costs)
+							+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+1e-6)]!Electricity costs of interconnected nodes
+							+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
+							!Misc
+							+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
+							+1e-6*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
+					
+						)
+					]
+				}
+			}
+			Parameter capCosts_planning_single {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						(
+							! CAPEX
+							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
+							(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New investments
+							+sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+							!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t) 	!Salvage value at end of lifetime (temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
+							)]
+					
+						)
+					]
+				}
+			}
+			Parameter fomCosts_planning_single {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						(
+							! FOM
+							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fixed costs
+					
+						)
+					]
+				}
+			}
+			Parameter vomCosts_planning_single {
+				Definition: {
+						sum[ps, 
+						social_discount_factor(ps)*
+						(
+					
+							! VOM
+							+sum[t, tech_use(t,ps)*(vom_cost(t,ps)+1e-6)] !Variable costs (including fuel costs)
+							+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+1e-6)]!Electricity costs of interconnected nodes
+							+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*vom_cost(t,ps)] !Deviations in tech use due to flexibility
+							!Misc
+							+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
+							+1e-6*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
+					
+						)
+					]
+				}
+			}
+			Parameter MemoryUseMPs {
+				IndexDomain: IndexGeneratedMathematicalPrograms;
 			}
 		}
 		DeclarationSection GMP_formulation {
@@ -2032,21 +2299,20 @@ Model IESA_Opt_Package {
 					'Number of Variables',
 					'Number of Nonzeros',
 					'Number of Iterations',
-					'Used Memory',
-					'Peak Memory',
-					'Date of Run',
-					'Solver Status',
-					'Mathematical Program Status',
-					'Database Version',
-					'Model Version',
-					'Hours per day',
-					'Crossover',
-					'Intra-year Prices',
 					'Generation Time',
 					'Solving Time',
 					'Elapsed Time',
+					'Used Memory',
+					'Peak Memory',
+					'Objective Function Value',
+					'Date of Run',
+					'Solver Status',
+					'Mathematical Program Status',
+					'Intra-year Prices',
 					'Total Run Time',
-					'Objective Function Value'
+					'Database Version',
+					'Model Version',
+					'Hours per day'
 					}
 				}
 			}
@@ -2175,7 +2441,6 @@ Model IESA_Opt_Package {
 				MathProgramParameters('Solver Status',run_step) := GMP::Solution::GetSolverStatus(GMP_name,1);
 				MathProgramParameters('Intra-year Prices',run_step) := PricesValue + (PricesValue='yes')*(" by ") + (PricesValue='yes')*IntrayearValue;
 				MathProgramParameters('Mathematical Program Status',run_step) := GMP::Solution::GetProgramStatus(GMP_name,1);
-				MathProgramParameters('Crossover',run_step) := crossover_enabling;
 			}
 			ElementParameter run_step {
 				Range: run_number;
@@ -2190,9 +2455,9 @@ Model IESA_Opt_Package {
 				!Procedure to define the required solver settings
 				
 				!Apply desired settings for the options regardless of the solver 
-				option Presolve_feasibility_tolerance:= 1e-8;
+				option Presolve_feasibility_tolerance:= 1e-9;
 				if (crossover_enabling = 'yes') then
-					option Presolve_feasibility_tolerance:= 1e-8;
+					option Presolve_feasibility_tolerance:= 1e-6;
 				endif;
 				Feasibility_tolerance := 1e-6;
 				Optimality_tolerance := 1e-6;
@@ -2206,19 +2471,41 @@ Model IESA_Opt_Package {
 				endif;
 				
 				!Apply desired settings for the each solver
+				! For Gurobi 10.0
+					option 'GUROBI 10.0'.Method := 'Barrier';
+					option 'GUROBI 10.0'.Barrier_crossover := 'Off';
+					option 'GUROBI 10.0'.Thread_limit := CPUCores;
+					option 'GUROBI 10.0'.Barrier_convergence_tolerance := BarrierConvergence_tolerance;
+					option 'GUROBI 10.0'.Barrier_homogeneous_algorithm := 'Automatic'; !'On'
+					option 'GUROBI 10.0'.presolve := 'Automatic' ; !'Automatic'; !'Off'
+					option 'GUROBI 10.0'.scale := 'Yes'; !'No'
+					option 'GUROBI 10.0'.presolve_dual := 'Off';
+					option 'GUROBI 10.0'.feasibility := Feasibility_tolerance;
+					option 'GUROBI 10.0'.optimality := Optimality_tolerance;
+					if (crossover_enabling = 'yes') then
+						option 'GUROBI 10.0'.Barrier_crossover := 'Automatic';
+						option 'GUROBI 10.0'.presolve_dual := 'Presolve primal and dual';
+						if (RobustValue = 'yes') then
+							option 'GUROBI 10.0'.Barrier_crossover_basis := 'Robust';
+						elseif (RobustValue = 'no') then
+							option 'GUROBI 10.0'.Barrier_crossover_basis := 'Fast';
+						endif;	
+					endif;
+				
 				! For Gurobi 9.5
 					option 'GUROBI 9.5'.Method := 'Barrier';
 					option 'GUROBI 9.5'.Barrier_crossover := 'Off';
 					option 'GUROBI 9.5'.Thread_limit := CPUCores;
 					option 'GUROBI 9.5'.Barrier_convergence_tolerance := BarrierConvergence_tolerance;
-					option 'GUROBI 9.5'.presolve := 'Automatic'; !'Off'
+					option 'GUROBI 9.5'.Barrier_homogeneous_algorithm := 'Automatic'; !'On'
+					option 'GUROBI 9.5'.presolve := 'Automatic' ; !'Automatic'; !'Off'
 					option 'GUROBI 9.5'.scale := 'Yes'; !'No'
-				!	option 'GUROBI 9.5'.presolve_dual := 'Off';
+					option 'GUROBI 9.5'.presolve_dual := 'Off';
 					option 'GUROBI 9.5'.feasibility := Feasibility_tolerance;
 					option 'GUROBI 9.5'.optimality := Optimality_tolerance;
 					if (crossover_enabling = 'yes') then
 						option 'GUROBI 9.5'.Barrier_crossover := 'Automatic';
-				!		option 'GUROBI 9.5'.presolve_dual := 'Presolve primal and dual';
+						option 'GUROBI 9.5'.presolve_dual := 'Presolve primal and dual';
 						if (RobustValue = 'yes') then
 							option 'GUROBI 9.5'.Barrier_crossover_basis := 'Robust';
 						elseif (RobustValue = 'no') then
@@ -2226,7 +2513,6 @@ Model IESA_Opt_Package {
 						endif;	
 					endif;
 				
-				!Apply desired settings for the each solver
 				! For Gurobi 9.1
 					option 'GUROBI 9.1'.Method := 'Barrier';
 					option 'GUROBI 9.1'.Barrier_crossover := 'Off';
@@ -2322,6 +2608,23 @@ Model IESA_Opt_Package {
 					endif;
 				
 				
+				! For CPLEX 22.1
+					option 'CPLEX 22.1'.LP_Method := 'Barrier';
+					option 'CPLEX 22.1'.Barrier_progress_solution := 1;
+					option 'CPLEX 22.1'.Solution_type := 'nonbasic';	
+					option 'CPLEX 22.1'.Global_thread_limit := CPUCores;
+					option 'CPLEX 22.1'.Barrier_convergence_tolerance := BarrierConvergence_tolerance;
+					option 'CPLEX 22.1'.feasibility := Feasibility_tolerance;
+					option 'CPLEX 22.1'.optimality := Optimality_tolerance;
+					option 'CPLEX 22.1'.parallel_mode := 'Opportunistic';
+				!	option 'CPLEX 22.1'.preprocessing_reduction_types := 'No primal and dual reductions';
+				!	option 'CPLEX 22.1'.presolve_pass_dual := 'Off';
+					if (crossover_enabling = 'yes') then
+						option 'CPLEX 22.1'.Solution_type := 'basic';
+						option 'CPLEX 22.1'.Barrier_crossover_algorithm := 'Automatic';
+						option 'CPLEX 22.1'.presolve_pass_dual := 'On';
+						option 'CPLEX 22.1'.preprocessing_reduction_types := 'Both primal and dual reductions';
+					endif;
 				
 				
 				StatusMessage("Solver options were succesfully updated");
@@ -2332,7 +2635,6 @@ Model IESA_Opt_Package {
 		DeclarationSection Variables_stored {
 			Parameter Ptech_use {
 				IndexDomain: (t,p);
-				InitialData: 0;
 			}
 			Parameter Ptech_useNet {
 				IndexDomain: (t,p);
@@ -2467,6 +2769,22 @@ Model IESA_Opt_Package {
 				IndexDomain: (n,p);
 				InitialData: 0;
 			}
+			Parameter shadow_energyPrices {
+				IndexDomain: (nn,ae,p);
+				Definition: {
+					if (ae in activities_year) then
+						sum[n, (namePer_node(nodePer_act(ae))=nn)*yearly_prices(ae,p)]
+					elseif (ae in activities_day) then
+						sum[n, (namePer_node(nodePer_act(ae))=nn)*sum[d, daily_prices(d,ae,p)]/card(days)]
+					elseif (ae in activities_hour) then
+						sum[n, (namePer_node(nodePer_act(ae))=nn)*sum[h, hourly_prices(h,ae,p)]/card(hours)]
+					endif
+				}
+			}
+			Parameter shadow_CO2Prices {
+				IndexDomain: (nn,ac,p);
+				Definition: sum[n, (namePer_node(nodePer_act(ac))=nn)*CO2_prices(ac,p)];
+			}
 		}
 		DeclarationSection Energy_Costs {
 			Set typesOf_LCOEelements {
@@ -2544,9 +2862,9 @@ Model IESA_Opt_Package {
 					if (tol='CAPEX') then
 						(activityPer_tech(tb)=as)*(
 						IEM_node(nodePer_techBal(tb))*(namePer_node(nodePer_techBal(tb))=nn)*(Ptech_useNet(tb,p)>=0.01)
-						*PtechStock(tb,p)*inv_cost(tb,p)*annuity_fac(tb)/(Ptech_useNet(tb,p)+1e-10)
+						*PtechStock(tb,p)*inv_cost(tb,p)*CRF(tb)/(Ptech_useNet(tb,p)+1e-10)
 						+IEM_node(nodePer_techBal(tb))*(namePer_node(nodePer_techBal(tb))=nn)*(Ptech_useNet(tb,p)<0.01)
-						*inv_cost(tb,p)*annuity_fac(tb)/cap2act(tb)
+						*inv_cost(tb,p)*CRF(tb)/cap2act(tb)
 						)
 					elseif (tol='FOM') then
 						(activityPer_tech(tb)=as)*(
@@ -2580,7 +2898,7 @@ Model IESA_Opt_Package {
 				Definition: {
 					if (tol='CAPEX') then
 						(activityPer_tech(tb)=as)*(
-						IEM_node(nodePer_techBal(tb))*(namePer_node(nodePer_techBal(tb))=nn)*inv_cost(tb,p)*annuity_fac(tb)/cap2act(tb)
+						IEM_node(nodePer_techBal(tb))*(namePer_node(nodePer_techBal(tb))=nn)*inv_cost(tb,p)*CRF(tb)/cap2act(tb)
 						)
 					elseif (tol='FOM') then
 						(activityPer_tech(tb)=as)*(
@@ -2609,7 +2927,7 @@ Model IESA_Opt_Package {
 					if (tol='CAPEX') then
 						(activityPer_tech(tb)=as)*(
 						IEM_node(nodePer_techBal(tb))*(namePer_node(nodePer_techBal(tb))=nn)*(Ptech_useNet(tb,p)>=0.01)
-						*PtechStock(tb,p)*inv_cost(tb,p)*annuity_fac(tb)/(Ptech_useNet(tb,p)+1e-10)
+						*PtechStock(tb,p)*inv_cost(tb,p)*CRF(tb)/(Ptech_useNet(tb,p)+1e-10)
 						)
 					elseif (tol='FOM') then
 						(activityPer_tech(tb)=as)*(
@@ -2661,13 +2979,13 @@ Model IESA_Opt_Package {
 			Set typesOf_costs {
 				Index: toc, itoc;
 				Definition: {
-					{'Capital Cost','Fixed Operational Cost','Variable Operational Cost','Fuel Costs','Emission Costs','Trading Costs','Total Cost'}
+					{'Capital Cost','Fixed Operational Cost','Variable Operational Cost','Fuel Costs','Emission Costs','Trading Costs','National Primary Energy Cost','Import Cost','Export Revenues','Total Cost'}
 				}
 			}
 			Set typesOf_payments {
 				Index: top, itop;
 				Definition: {
-					{'Investment', 'Decommisioning', 'Retrofitting','Operational', 'Variable','Existing Stock'}
+					{'Investment', 'Decommisioning', 'Retrofitting','Operational', 'Variable'}
 				}
 			}
 			Set typesOf_techSources {
@@ -2676,31 +2994,31 @@ Model IESA_Opt_Package {
 					{'Balancing','Infrastructure'}
 				}
 			}
-			Parameter Obj_decomposition {
-				IndexDomain: (toc,p);
+			Parameter objFun_decomposition {
+				IndexDomain: (toc,p,ps);
 				Definition: {
 					if (toc='Capital Cost') then
-						sum[t, (techStock_exist(t)-sum[jp | jp<=p, decom_planned(t,jp)])*inv_cost(t,'2020')*annuity_fac(t)]	!Existing stock
-						+sum[(t,jp), InvMat_lifeTime(t,jp,p)*
-						(Pcap_investments(t,jp)*inv_cost(t,jp)*annuity_fac(t)				!New invetments
-						+sum[it, Pretrofitting(it,t,jp)*inv_cost(t,jp)*annuity_fac(t)]			!Retroffiting aditions
-						-sum[it, Pretrofitting(t,it,jp)*inv_cost(t,jp)*annuity_fac(t)]		!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
-						-Peco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t))] 	!Recovered costs of decommisioning forwarded to the substitute investment
+						+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
+						(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New invetments
+						+sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+						!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t)	!Salvage value (temporarily removed, should be applied for post-2050 lifetimes only)
+						)] 	
 					elseif (toc='Fixed Operational Cost') then
-						sum[(t), PtechStock(t,p)*fom_cost(t,p)] !Fix costs
+						sum[(t), techStock(t,p)*fom_cost(t,p)] !Fix costs
 					elseif (toc='Variable Operational Cost') then
-						sum[t, Ptech_use(t,p)*(vom_cost(t,p)+1e-6)] !Variable costs (including fuel costs)
-						+sum[(h,t), (PdeltaU_CHP(h,t,p)+PdeltaS_shed(h,t,p))*vom_cost(t,p)] !Deviations in tech use due to flexibility
+						sum[t, tech_use(t,p)*(vom_cost(t,p)+1e-6)] !Variable costs (including fuel costs)
+						+sum[(h,thin), tech_useHourly(h,thin,p)*(vom_hourly(h,thin,p)+1e-6)]!Electricity costs of interconnected nodes
+						+sum[(h,t), (deltaU_CHP(h,t,p)+deltaS_shed(h,t,p))*vom_cost(t,p)] !Deviations in tech use due to flexibility
 					elseif (toc='Total Cost') then
-						sum[t, (techStock_exist(t)-sum[jp | jp<=p, decom_planned(t,jp)])*inv_cost(t,'2020')*annuity_fac(t)]	!Existing stock
-						+sum[(t,jp), InvMat_lifeTime(t,jp,p)*
-						(Pcap_investments(t,jp)*inv_cost(t,jp)*annuity_fac(t)				!New invetments
-						+sum[it, Pretrofitting(it,t,jp)*inv_cost(t,jp)*annuity_fac(t)]			!Retroffiting aditions
-						-sum[it, Pretrofitting(t,it,jp)*inv_cost(t,jp)*annuity_fac(t)]		!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
-						-Peco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t))] 	!Recovered costs of decommisioning forwarded to the substitute investment
-						+sum[(t), PtechStock(t,p)*fom_cost(t,p)] !Fix costs
-						+sum[t, Ptech_use(t,p)*(vom_cost(t,p)+1e-6)] !Variable costs (including fuel costs)
-						+sum[(h,t), (PdeltaU_CHP(h,t,p)+PdeltaS_shed(h,t,p))*vom_cost(t,p)] !Deviations in tech use due to flexibility
+						+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*						!lifetime matrix
+						(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New invetments
+						+sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+						!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t)	!Salvage value (temporarily removed, should be applied for post-2050 lifetimes only)
+						)] 
+						+sum[(t), techStock(t,p)*fom_cost(t,p)] !Fix costs
+						+sum[t, tech_use(t,p)*(vom_cost(t,p)+1e-6)] !Variable costs (including fuel costs)
+						+sum[(h,thin), tech_useHourly(h,thin,p)*(vom_hourly(h,thin,p)+1e-6)]!Electricity costs of interconnected nodes
+						+sum[(h,t), (deltaU_CHP(h,t,p)+deltaS_shed(h,t,p))*vom_cost(t,p)] !Deviations in tech use due to flexibility
 					endif
 				}
 			}
@@ -2713,50 +3031,26 @@ Model IESA_Opt_Package {
 				Definition: {
 					!sum[(pa,ip) | ip<=p, Pcap_investments(tn,ip)*InvMat_lifeTime(tn,pa,ip)*inv_cost(tn,pa)*annuity_fac(tn)]
 					(nodePer_techBal(tb)=n)*(
-					(techStock_exist(tb)-sum[jp | jp<=p, decom_planned(tb,jp)])*inv_cost(tb,'2020')*annuity_fac(tb)	!Existing stock
-					+sum[jp, InvMat_lifeTime(tb,jp,p)*
-						(Pcap_investments(tb,jp)*inv_cost(tb,jp)*annuity_fac(tb)				!New invetments
-						+sum[it, Pretrofitting(it,tb,jp)*inv_cost(tb,jp)*annuity_fac(tb)]			!Retroffiting aditions
-						-sum[it, Pretrofitting(tb,it,jp)*inv_cost(tb,jp)*annuity_fac(tb)]		!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
-						-Peco_decommisioning(tb,jp)*(1-decom_frac(tb))*inv_cost(tb,jp)*annuity_fac(tb))] 	!Recovered costs of decommisioning forwarded to the substitute investment
-						)
+					(techStock_exist(tb)-sum[jp | jp<=p, decom_planned(tb,jp)])*inv_cost(tb,'2020')*CRF(tb)	!Existing stock
+					+sum[(jp), InvMat_lifeTime(tb,jp,p)*						!lifetime matrix
+							(Pcap_investments(tb,jp)*inv_cost(tb,jp)*CRF(tb)				!New invetments
+							+sum[(it), Pretrofitting(it,tb,jp)*CRF(tb)*(retro_cost(it,tb)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+							!-Peco_decommisioning(tb,jp)*(1-decom_frac(tb))*inv_cost(tb,jp)*annuity_fac(tb)	!Salvage value (temporarily removed, should be applied for post-2050 lifetimes only)
+							)] 
+							)
 				}
-			}
-			Parameter capitalCosts_bkdw {
-				IndexDomain: (t,top,p);
-				Definition: {
-					!sum[(pa,ip) | ip<=p, Pcap_investments(tn,ip)*InvMat_lifeTime(tn,pa,ip)*inv_cost(tn,pa)*annuity_fac(tn)]
-					if (top='Existing Stock') then
-					(techStock_exist(t)-sum[jp | jp<=p, decom_planned(t,jp)])*inv_cost(t,'2020')*annuity_fac(t)	!Existing stock
-					elseif (top='Investment') then
-					sum[jp, InvMat_lifeTime(t,jp,p)*
-						Pcap_investments(t,jp)*inv_cost(t,jp)*annuity_fac(t)]				!New invetments
-					elseif (top='Retrofitting') then
-					sum[jp, InvMat_lifeTime(t,jp,p)*
-						(sum[it, Pretrofitting(it,t,jp)*inv_cost(t,jp)*annuity_fac(t)]			!Retroffiting aditions
-						-sum[it, Pretrofitting(t,it,jp)*inv_cost(t,jp)*annuity_fac(t)])]		!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
-					elseif (top='Decommisioning') then
-					sum[jp, InvMat_lifeTime(t,jp,p)*
-						(-Peco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t))] 	!Recovered costs of decommisioning forwarded to the substitute investment
-					endif
-				}
-			}
-			Parameter capitalCosts_bkdwTotal {
-				IndexDomain: (top,p);
-				Definition: sum[t, capitalCosts_bkdw(t,top,p)];
 			}
 			Parameter capitalCosts_techInfra {
 				IndexDomain: (n,ti,p);
 				Definition: {
 					!sum[(pa,ip) | ip<=p, Pcap_investments(tn,ip)*InvMat_lifeTime(tn,pa,ip)*inv_cost(tn,pa)*annuity_fac(tn)]
 					(nodePer_techInfra(ti)=n)*(
-					(techStock_exist(ti)-sum[jp | jp<=p, decom_planned(ti,jp)])*inv_cost(ti,'2020')*annuity_fac(ti)	!Existing stock
-					+sum[jp, InvMat_lifeTime(ti,jp,p)*
-						(Pcap_investments(ti,jp)*inv_cost(ti,jp)*annuity_fac(ti)				!New invetments
-						+sum[it, Pretrofitting(it,ti,jp)*inv_cost(ti,jp)*annuity_fac(ti)]			!Retroffiting aditions
-						-sum[it, Pretrofitting(ti,it,jp)*inv_cost(ti,jp)*annuity_fac(ti)]		!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
-						-Peco_decommisioning(ti,jp)*(1-decom_frac(ti))*inv_cost(ti,jp)*annuity_fac(ti))] 	!Recovered costs of decommisioning forwarded to the substitute investment
-						)
+					(techStock_exist(ti)-sum[jp | jp<=p, decom_planned(ti,jp)])*inv_cost(ti,'2020')*CRF(ti)	!Existing stock
+					+sum[(jp), InvMat_lifeTime(ti,jp,p)*						!lifetime matrix
+							(Pcap_investments(ti,jp)*inv_cost(ti,jp)*CRF(ti)				!New invetments
+							+sum[(it), Pretrofitting(it,ti,jp)*CRF(ti)*(retro_cost(it,ti)+p_epsilon)] !Retrofitting costs (based on Excel database input)
+							!-Peco_decommisioning(ti,jp)*(1-decom_frac(ti))*inv_cost(ti,jp)*CRF(ti)	!Salvage value (temporarily removed, should be applied for post-2050 lifetimes only)
+							)])
 				}
 			}
 			Parameter fuelCosts_tech {
@@ -2766,6 +3060,10 @@ Model IESA_Opt_Package {
 					sum[(h,ae), -Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ae,p)*EnergyCosts(h,ae,p)*(activity_balances(tb,ae,p)<0)]
 				}
 			}
+			Parameter nationalPrimary_energyCost {
+				IndexDomain: (n,tb,p);
+				Definition: Ptech_useNet(tb,p)*vom_cost(tb,p)*(nodePer_techBal(tb)=n)*(tech_category(tb)="Primary")*(1-(tb in tech_imports));
+			}
 			Parameter emissionCosts_tech {
 				IndexDomain: (n,tb,p);
 				Definition: {
@@ -2773,37 +3071,64 @@ Model IESA_Opt_Package {
 					sum[(h,ac), -Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ac,p)*EmissionCosts(ac,p)]
 				}
 			}
+			Parameter exportCosts_act {
+				IndexDomain: (n,ae,p);
+				Definition: {
+					!Yearly activities
+					(dispatchType_act(ae)='yearly')*final_activities(n,ae,p)*EnergyCosts_yearly(ae,p)
+					
+					!Daily activities
+					-sum[(d,tb), (dispatchType_act(ae)='daily')*(nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useDailyNet(d,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_daily(d,ae,p)]
+					
+					!Hourly activities
+					-sum[(h,tb), (dispatchType_act(ae)='hourly')*(nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_hourly(h,ae,p)]
+				}
+			}
 			Parameter exportCosts_tech {
 				IndexDomain: (n,tb,p);
 				Definition: {
 					!Yearly activities
-					-sum[ae, (dispatchType_act(ae)='yearly')*final_activities(n,ae,p)*EnergyCosts_yearly(ae,p)*EnergyShare_tech(n,ae,tb,p)]*IEM_node(n)
+					sum[ae, (dispatchType_act(ae)='yearly')*final_activities(n,ae,p)*EnergyCosts_yearly(ae,p)*EnergyShare_tech(n,ae,tb,p)]
 					
-					!+sum[(ae,tb), activities_netVolumes(ae,ps)*(-1*(tech_category(tb)='Primary')*(activityPer_tech(tb)=ae)*vom_cost(tb,ps))]
-					
-					!Daily activities (natural gas export)
-					-sum[(d,ae), (dispatchType_act(ae)='daily')*(nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0)*IEM_node(n) !Technologies that are taking energy from other nodes
-					*Ptech_useDailyNet(d,tb,p)*(-1)*activity_balances(tb,ae,p)*EnergyCosts_daily(d,ae,p)]
+					!Daily activities
+					-sum[(d,ae), (dispatchType_act(ae)='daily')*(nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useDailyNet(d,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_daily(d,ae,p)]
 					
 					!Hourly activities
-					-sum[(h,ae), (dispatchType_act(ae)='hourly')*(nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0)*IEM_node(n) !Technologies that are taking energy from other nodes
+					-sum[(h,ae), (dispatchType_act(ae)='hourly')*(nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
 					*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_hourly(h,ae,p)]
+				}
+			}
+			Parameter importCosts_act {
+				IndexDomain: (n,ae,p);
+				Definition: {
+					!Yearly activities
+					sum[tb, (activityPer_tech(tb)=ae)*Ptech_useNet(tb,p)*vom_cost(tb,p)*(nodePer_techBal(tb)=n)*(tb in tech_imports)]
 					
-					!Export electricity (export shadow price)
-					!+sum[(h,ae), (ae='Electricity NL')*(tech_subsector(tb)='XC Trade')*(activity_balances(tb,ae,p)<0)*IEM_node(n)
-					!*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_hourly(h,ae,p)]
+					!Daily activities
+					-sum[(d,tb), (dispatchType_act(ae)='daily')*(nodePer_techBal(tb)=n)*(nodePer_act(ae)<>n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useDailyNet(d,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_daily(d,ae,p)]
 					
-					!Export electricity (flat export price)
-					+sum[ae, (ae='Electricity Export')*(activity_balances(tb,ae,p)>0)*IEM_node(n)
-					*Ptech_useNet(tb,p)*activity_balances(tb,ae,p)*vom_cost('EQE01_01',p)]
+					!Hourly activities
+					-sum[(h,tb), (dispatchType_act(ae)='hourly')*(nodePer_techBal(tb)=n)*(nodePer_act(ae)<>n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_hourly(h,ae,p)]
 				}
 			}
 			Parameter importCosts_tech {
 				IndexDomain: (n,tb,p);
 				Definition: {
-					!Import electricity
-					sum[ae, (ae='Electricity Import')*(activity_balances(tb,ae,p)>0)*IEM_node(n)
-					*Ptech_useNet(tb,p)*activity_balances(tb,ae,p)*vom_cost('EQI01_01',p)]
+					!Yearly activities
+					Ptech_useNet(tb,p)*vom_cost(tb,p)*(nodePer_techBal(tb)=n)*(tb in tech_imports)
+					
+					!Daily activities
+					-sum[(d,ae), (dispatchType_act(ae)='daily')*(nodePer_techBal(tb)=n)*(nodePer_act(ae)<>n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useDailyNet(d,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_daily(d,ae,p)]
+					
+					!Hourly activities
+					-sum[(h,ae), (dispatchType_act(ae)='hourly')*(nodePer_techBal(tb)=n)*(nodePer_act(ae)<>n)*(activity_balances(tb,ae,p)<0) !Technologies that are taking energy from other nodes
+					*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ae,p)*EnergyCosts_hourly(h,ae,p)]
 				}
 			}
 			Parameter SystemCosts_techBal {
@@ -2814,15 +3139,20 @@ Model IESA_Opt_Package {
 					elseif (toc='Fixed Operational Cost') then
 						PtechStock(tb,p)*fom_cost(tb,p)*(nodePer_techBal(tb)=n)
 					elseif (toc='Variable Operational Cost') then
-						Ptech_useNet(tb,p)*vom_cost(tb,p)*(nodePer_techBal(tb)=n) 
-					elseif (toc='Trading Costs') then
-						+exportCosts_tech(n,tb,p)*(nodePer_techBal(tb)=n)
-						+importCosts_tech(n,tb,p)
+						Ptech_useNet(tb,p)*vom_cost(tb,p)*(tech_category(tb)<>"Primary")*(1-(tb in tech_imports))*(nodePer_techBal(tb)=n)
+					elseif (toc='National Primary Energy Cost') then
+						nationalPrimary_energyCost(n,tb,p)	
+					elseif (toc='Import Cost') then
+						importCosts_tech(n,tb,p)
+					elseif (toc='Export Revenues') then !'National Primary Energy Cost','Import Cost','Export Revenues'
+						-exportCosts_tech(n,tb,p)
 					elseif (toc='Total Cost') then
 						capitalCosts_techBal(n,tb,p)*(nodePer_techBal(tb)=n)
 						+PtechStock(tb,p)*fom_cost(tb,p)*(nodePer_techBal(tb)=n)
-						+Ptech_useNet(tb,p)*vom_cost(tb,p)*(nodePer_techBal(tb)=n) 
-						+exportCosts_tech(n,tb,p)*(nodePer_techBal(tb)=n)+importCosts_tech(n,tb,p)
+						+Ptech_useNet(tb,p)*vom_cost(tb,p)*(tech_category(tb)<>"Primary")*(1-(tb in tech_imports))*(nodePer_techBal(tb)=n)
+						+nationalPrimary_energyCost(n,tb,p)
+						+importCosts_tech(n,tb,p) 
+						-exportCosts_tech(n,tb,p)
 					endif
 				}
 			}
@@ -2901,9 +3231,10 @@ Model IESA_Opt_Package {
 					if (top='Investment') then
 						Pcap_investments(tb,p)*inv_cost(tb,p)*(nodePer_techBal(tb)=n)
 					elseif (top='Decommisioning') then
-						Peco_decommisioning(tb,p)*inv_cost(tb,p)*decom_frac(tb)*(nodePer_techBal(tb)=n)
+						0
+						!Peco_decommisioning(tb,p)*inv_cost(tb,p)*decom_frac(tb)*(nodePer_techBal(tb)=n)		!Salvage value (temporarily removed, should be applied for post-2050 lifetimes only)
 					elseif (top='Retrofitting') then
-						sum[it, Pretrofitting(it,tb,p)*(inv_cost(tb,p)-inv_cost(it,p))]*(nodePer_techBal(tb)=n)
+						sum[it, Pretrofitting(it,tb,p)*(retro_cost(it,tb))]*(nodePer_techBal(tb)=n)	!Retrofitting costs (based on Excel database input) 
 					elseif (top='Operational') then
 						PtechStock(tb,p)*fom_cost(tb,p)*(nodePer_techBal(tb)=n)
 					elseif (top='Variable') then
@@ -2918,9 +3249,10 @@ Model IESA_Opt_Package {
 					if (top='Investment') then
 						Pcap_investments(ti,p)*inv_cost(ti,p)*(nodePer_techInfra(ti)=n)
 					elseif (top='Decommisioning') then
-						Peco_decommisioning(ti,p)*inv_cost(ti,p)*decom_frac(ti)*(nodePer_techInfra(ti)=n)
+						0
+						!Peco_decommisioning(tb,p)*inv_cost(tb,p)*decom_frac(tb)*(nodePer_techBal(tb)=n)		!Salvage value (temporarily removed, should be applied for post-2050 lifetimes only)
 					elseif (top='Retrofitting') then
-						sum[it, Pretrofitting(it,ti,p)*(inv_cost(ti,p)-inv_cost(it,p))]*(nodePer_techInfra(ti)=n)
+						sum[it, Pretrofitting(it,ti,p)*(retro_cost(it,ti))]*(nodePer_techInfra(ti)=n)	!Retrofitting costs (based on Excel database input)
 					elseif (top='Operational') then
 						PtechStock(ti,p)*fom_cost(ti,p)*(nodePer_techInfra(ti)=n)
 					endif
@@ -2975,7 +3307,7 @@ Model IESA_Opt_Package {
 			}
 		}
 		DeclarationSection Configuration {
-			Set typesOf_planningDecissions {
+			Set typesOf_planningDecisions {
 				Index: topd, itopd, jtopd;
 				Definition: {
 					{'Investment','Retrofitting additions','Retrofitting substractions','Economic decommissioning'}
@@ -3028,7 +3360,7 @@ Model IESA_Opt_Package {
 					/sum[(itb), (nodePer_techBal(tb)=n)*(activity_balances(itb,ae,p)>0)*Ptech_useNet(itb,p)*activity_balances(itb,ae,p)+1e-9]
 				}
 			}
-			Parameter PlanningDecissions_tech {
+			Parameter PlanningDecisions_tech {
 				IndexDomain: (nn,t,topd,p);
 				Definition: {
 					if (topd='Investment') then
@@ -3142,6 +3474,20 @@ Model IESA_Opt_Package {
 					endif
 				}
 			}
+			Parameter CHP_output {
+				IndexDomain: (tk,ae,p);
+				Definition: {
+					!(activity_balances(tk,ae,p)>0)*
+					Ptech_useNet(tk,p)*activity_balances(tk,ae,p)
+				}
+			}
+			Parameter CHP_input {
+				IndexDomain: (tk,ae,p);
+				Definition: {
+					(activity_balances(tk,ae,p)>0)*
+					Ptech_useNet(tk,p)*activity_balances(tk,ae,p)
+				}
+			}
 		}
 		DeclarationSection Emissions {
 			Parameter emissions_all {
@@ -3159,6 +3505,13 @@ Model IESA_Opt_Package {
 			Parameter emissions_tech {
 				IndexDomain: (nn,z,as,tb,ac,p);
 				Definition: (namePer_node(nodePer_techBal(tb))=nn)*(tech_sector(tb)=z)*(activityPer_tech(tb)=as)*Ptech_useNet(tb,p)*activity_balances(tb,ac,p)*IEM_node(nodePer_techBal(tb));
+			}
+			Parameter emissions_cum {
+				IndexDomain: n;
+				Definition: {
+					!The sum of the use of all the emissions released to air in each node
+					sum[(tb,ps), Ptech_use(tb,ps)*(nodePer_act(activityPer_tech(tb))=n)*(activityPer_tech(tb) in activities_target)*period_weightUSE(ps)*transition_interval]
+				}
 			}
 		}
 		DeclarationSection Balances {
@@ -3304,6 +3657,16 @@ Model IESA_Opt_Package {
 					sum[(tb,ae) | ((nodePer_techBal(tb)=n)*(tech_category(tb)='Final')*(tech_sector(tb)=z)*(activityType_act(activityPer_tech(tb))='Driver'))<>0,
 					((activityPer_tech(tb) in international_transport)=0)* !Not in international transport
 					 energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=el)] !Final enery use
+					
+					 !below added by Kira to correct for "conversion" material processes and CCUS
+					
+					 !Final enery use for industrial material conversion processes
+					 + sum[(tb,ae) | ((nodePer_techBal(tb)=n)*(tech_category(tb)='Conversion')*(tech_sector(tb)='Industry')*(activityType_act(activityPer_tech(tb))='Material conversion')*(tech_sector(tb)=z))<>0,
+					 energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=el)]
+					
+					!CCUS
+					   + sum[(tb,ae) | ((nodePer_techBal(tb)=n)*(tech_category(tb)='Emission')*(tech_sector(tb)='Industry')*(tech_sector(tb)=z))<>0,
+					 (energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=el))]
 				}
 			}
 			Parameter finalEnergy_actEL {
@@ -3312,28 +3675,40 @@ Model IESA_Opt_Package {
 					sum[(tb,ae) | ((nodePer_techBal(tb)=n)*(tech_category(tb)='Final')*(tech_sector(tb)=z)*(activityPer_tech(tb)=as)*(activityType_act(activityPer_tech(tb))='Driver'))<>0,
 					((activityPer_tech(tb) in international_transport)=0)* !Not in international transport
 					 energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=el)] !Final enery use
+					  !added by Kira to correct for "conversion" material processes and CCUS
+					  + sum[(tb,ae) | ((nodePer_techBal(tb)=n)*(tech_category(tb)='Conversion')*(tech_sector(tb)='Industry')*(activityPer_tech(tb)=as))*(activityType_act(activityPer_tech(tb))='Material conversion')<>0,
+					 energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=el)] !Final enery use for industrial material conversion processes
+					   + sum[(tb,ae) | ((nodePer_techBal(tb)=n)*(tech_category(tb)='Emission')*(tech_sector(tb)='Industry')*(activityPer_tech(tb)=as))<>0,
+					 energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=el)] !Final enery use for CCUS
 				}
 			}
 			Parameter finalEnergy_matrix {
 				IndexDomain: (nn,z,tof,el,p);
 				Definition: {
 					if (tof='Energy Use') then
-						sum[n, (namePer_node(n)=nn)*feedstockUse_sec(n,z,el,p)]*(z<>'Waste') !(HARDCODED)
-						-sum[n, (namePer_node(n)=nn)*finalEnergy_sec(n,z,el,p)]*(z<>'Waste') !(HARDCODED)
+						sum[n, (namePer_node(n)=nn)*feedstockUse_sec(n,z,el,p)]*(z<>'Waste')*(el<>'Material') !(HARDCODED)
+						-sum[n, (namePer_node(n)=nn)*finalEnergy_sec(n,z,el,p)]*(z<>'Waste')*(el<>'Material') !(HARDCODED)
 					elseif(tof='Feedstock') then
-						-sum[n, (namePer_node(n)=nn)*feedstockUse_sec(n,z,el,p)]*(z<>'Waste') !(HARDCODED)
+						-sum[n, (namePer_node(n)=nn)*feedstockUse_sec(n,z,el,p)]*(z<>'Waste')*(el<>'Material') !(HARDCODED)
 					endif
+					!edited by Kira to correct for material flows
 				}
 			}
 			Parameter finalEnergy_matrixAct {
 				IndexDomain: (nn,z,as,tof,el,p);
 				Definition: {
 					if (tof='Energy Use') then
-						sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(z<>'Waste')*(activityType_act(as)='Driver') !(HARDCODED)
-						-sum[n, (namePer_node(n)=nn)*finalEnergy_actEL(n,z,as,el,p)]*(z<>'Waste')*(activityType_act(as)='Driver') !(HARDCODED)
+						sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(z<>'Waste')*(el<>'Material')*(activityType_act(as)='Driver') !(HARDCODED)
+						-sum[n, (namePer_node(n)=nn)*finalEnergy_actEL(n,z,as,el,p)]*(z<>'Waste')*(el<>'Material')*(activityType_act(as)='Driver') !(HARDCODED)
+						+ sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(z='Industry')*(el<>'Material')*(activityType_act(as)='Material conversion') !(HARDCODED)
+						-sum[n, (namePer_node(n)=nn)*finalEnergy_actEL(n,z,as,el,p)]*(z='Industry')*(el<>'Material')*(activityType_act(as)='Material conversion') !(HARDCODED)
+						+ sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(z='Industry')*(el<>'Material')*(activityType_act(as)='Emission') !(HARDCODED)
+						-sum[n, (namePer_node(n)=nn)*finalEnergy_actEL(n,z,as,el,p)]*(z='Industry')*(el<>'Material')*(activityType_act(as)='Emission') !(HARDCODED)
 					elseif(tof='Feedstock') then
-						-sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(z<>'Waste') !(HARDCODED)
+						-sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(el<>'Material')*(z<>'Waste') !(HARDCODED)
 					endif
+					!edited by Kira to correct for material flows
+					!added by Kira to correct for material conversion activities (need to finalize this with material conversion as activity type
 				}
 			}
 			Parameter finalEnergy_act {
@@ -3343,11 +3718,17 @@ Model IESA_Opt_Package {
 					 energyUse_tech(n,tb,ae,p)*(nodePer_techBal(tb)=n)*(namePer_node(n)=nn)] !(HARDCODED)
 					+sum[(tb,ae,n) | ((tech_category(tb)='Emission')*(tech_sector(tb)=z)*(activityPer_tech(tb)=as)*energyUse_tech(n,tb,ae,p)*(activityType_act(activityPer_tech(tb))='Emission'))<0,
 					 energyUse_tech(n,tb,ae,p)*(nodePer_techBal(tb)=n)*(namePer_node(n)=nn)] !(HARDCODED)
+					 +sum[(tb,ae,n) | ((tech_category(tb)='Conversion')*(tech_sector(tb)=z)*(activityPer_tech(tb)=as)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))='Material'))<0,
+					 energyUse_tech(n,tb,ae,p)*(nodePer_techBal(tb)=n)*(namePer_node(n)=nn)] !(HARDCODED)
+					 !final element added by Kira to account for material conversion processes that belong to the "final" end use sectors
 				}
 			}
 			Parameter primaryEnergy {
 				IndexDomain: (n,el,p);
-				Definition: sum[(tb,ae), (nodePer_techBal(tb)=n)*(tech_category(tb)="Primary")*(activityPer_tech(tb)=ae)*(labelPer_act(ae)=el)*Ptech_useNet(tb,p)*activity_balances(tb,ae,p)];
+				Definition: {
+					sum[(tb,ae), (nodePer_techBal(tb)=n)*(tech_category(tb)="Primary")*(activityPer_tech(tb)=ae)*(labelPer_act(ae)=el)*(labelPer_act(ae)<>'Material')*Ptech_useNet(tb,p)*activity_balances(tb,ae,p)]
+					!edited by Kira to account for material flows
+				}
 			}
 			Parameter exportsEnergy {
 				IndexDomain: (n,el,p);
@@ -3355,7 +3736,8 @@ Model IESA_Opt_Package {
 					!-sum[(tb,ae), (nodePer_techBal(tb)<>n)*(nodePer_act(ae)=n)*(activity_balances(tb,ae,p)<0)*(labelPer_act(ae)=el)
 					!*Ptech_useNet(tb,p)*activity_balances(tb,ae,p)] !Technologies that are connected to other networks
 					
-					+sum[ae, final_activities(n,ae,p)*(labelPer_act(ae)=el)*(ae<>'Electricity Import')]!sum[ae, (nodePer_act(ae)=n)*(labelPer_act(ae)=el)] !Activities that are over-produced
+					+sum[ae, final_activities(n,ae,p)*(labelPer_act(ae)=el)*(labelPer_act(ae)<>'Material')]!sum[ae, (nodePer_act(ae)=n)*(labelPer_act(ae)=el)] !Activities that are over-produced
+					!edited by Kira to account for exported materials
 				}
 			}
 			Parameter primaryBalance {
@@ -3367,12 +3749,10 @@ Model IESA_Opt_Package {
 						+sum[n, (namePer_node(n)=nn)*primaryEnergy(n,'Oil',p)*IEM_node(n)]*(el='Oil Products')
 					elseif(tope='Exports') then
 						sum[n, (namePer_node(n)=nn)*exportsEnergy(n,el,p)*IEM_node(n)]*(el<>'Oil')
-						-sum[n, (namePer_node(n)=nn)*exportsEnergy('EU',el,p)*IEM_node(n)]*(el='Electricity')
 						+sum[n, (namePer_node(n)=nn)*exportsEnergy(n,'Oil',p)*IEM_node(n)]*(el='Oil Products')
 					elseif(tope='Net') then
 						sum[n, (namePer_node(n)=nn)*primaryEnergy(n,el,p)*IEM_node(n)]*(el<>'Oil')
 						-sum[n, (namePer_node(n)=nn)*exportsEnergy(n,el,p)*IEM_node(n)]*(el<>'Oil')
-						+sum[n, (namePer_node(n)=nn)*exportsEnergy('EU',el,p)*IEM_node(n)]*(el='Electricity')
 						+sum[n, (namePer_node(n)=nn)*primaryEnergy(n,'Oil',p)*IEM_node(n)]*(el='Oil Products')
 						-sum[n, (namePer_node(n)=nn)*exportsEnergy(n,'Oil',p)*IEM_node(n)]*(el='Oil Products')
 					endif
@@ -3389,35 +3769,40 @@ Model IESA_Opt_Package {
 				IndexDomain: (nn,tou,itos,jtos,p);
 				Definition: {
 					!(HARDCODED)
+					!edited by Kira to account for material flows and allocation of material conversion to final industry sector - STILL NEEDS WORK
 					if (tou = 'Final') then
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Final")]
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Emission")]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Final")*(labelPer_act(ae)<>'Material')]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Emission")*(labelPer_act(ae)<>'Material')]
+						!-sum[(n,tb,ae), (energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)='Industry')*(tech_category(tb)="Conversion")*(labelPer_act(ae)='Material')]
+						!-sum[(n,tb,amc), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,amc,p)<0)*energyUse_tech(n,tb,amc,p)*(labelPer_act(amc)=itos)*(tech_sector(tb)='Industry')*(labelPer_act(amc)='Material')]
 					
 					elseif (tou = 'Conversion') then
-						-sum[(n,tb,ae,iae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_sector(tb)='Waste Disposal')
+						-sum[(n,tb,ae,iae)| (labelPer_act(ae)<>'Material'), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_sector(tb)='Waste Disposal')
 						*energyUse_tech(n,tb,ae,p)*EnergyExclussiveness(n,tb,iae,p)
 						*(energyUse_tech(n,tb,ae,p)<0)*(tech_sector(tb)=itos)*(energyUse_tech(n,tb,iae,p)>0)*(labelPer_act(iae)=jtos)*(itos<>jtos)]
-						-sum[(n,tb,ae,iae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_category(tb)="Conversion")
+						-sum[(n,tb,ae,iae)| (labelPer_act(ae)<>'Material'), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_category(tb)="Conversion")
 						*energyUse_tech(n,tb,ae,p)*EnergyExclussiveness(n,tb,iae,p)
 						*(energyUse_tech(n,tb,ae,p)<0)*(labelPer_act(ae)=itos)*(energyUse_tech(n,tb,iae,p)>0)*(labelPer_act(iae)=jtos)*(itos<>jtos)]
+						!+sum[(n,tb,ae,iae)| (labelPer_act(ae)<>'Material'), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_category(tb)="Conversion")
+						!*energyUse_tech(n,tb,ae,p)*EnergyExclussiveness(n,tb,iae,p)
+						!*(energyUse_tech(n,tb,ae,p)<0)*(labelPer_act(ae)=itos)*(energyUse_tech(n,tb,iae,p)>0)*(labelPer_act(iae)=jtos)*(itos<>jtos)*(labelPer_act(iae)<>'Material')*(tech_sector(tb)='Industry')]
 					
 					elseif (tou = 'Exports') then
 						sum[n, IEM_node(n)*(namePer_node(n)=nn)*exportsEnergy(n,itos,p)*(jtos='Exports')]
-						-sum[n, IEM_node(n)*(namePer_node(n)=nn)*exportsEnergy('EU',itos,p)*(jtos='Exports')]
 					
 					elseif (tou = 'Losses') then
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=itos)*(jtos='Losses')*(tech_category(tb)="Conversion")]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=itos)*(labelPer_act(activityPer_tech(tb))<>'Material')*(jtos='Losses')*(tech_category(tb)="Conversion")]
 					
 					elseif (tou = 'Primary') then
 						(itos='Primary')*(
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Final")]
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Emission")]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Final")*(labelPer_act(ae)<>'Material')]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Emission")*(labelPer_act(ae)<>'Material')]
 						+sum[n, IEM_node(n)*(namePer_node(n)=nn)*exportsEnergy(n,jtos,p)]
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=jtos)*(tech_category(tb)="Conversion")]
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Conversion")]
-						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Primary")]
-						+sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=jtos)*(tech_category(tb)="Conversion")]
-						+sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=jtos)*(tech_category(tb)="Primary")]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=jtos)*(tech_category(tb)="Conversion")*(labelPer_act(ae)<>'Material')]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Conversion")*(labelPer_act(ae)<>'Material')]
+						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=jtos)*(tech_category(tb)="Primary")*(labelPer_act(ae)<>'Material')]
+						+sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=jtos)*(tech_category(tb)="Conversion")*(labelPer_act(ae)<>'Material')]
+						+sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*energyUse_tech(n,tb,ae,p)*(labelPer_act(activityPer_tech(tb))=jtos)*(tech_category(tb)="Primary")*(labelPer_act(ae)<>'Material')]
 						)
 					
 					endif
@@ -3551,9 +3936,9 @@ Model IESA_Opt_Package {
 			Set typesOf_keyIndicators {
 				Index: tok, itok, jtok;
 				Definition: {
-					{'CO2 Target','CO2 Price','Hydrogen Use','RES share in primary','RES share in final electricity',
+					{'CO2 Target','CO2 Price','Hydrogen Use','Ammonia Use','RES share in primary','RES share in final electricity',
 					'Final electrification','Final Energy Cost','Primary Energy Cost','CO2 Storage Potential','Net Emissions',
-					'UP flex demand','DW flex demand'}
+					'UP flex demand','DW flex demand','Oil Products Exports','Synfuels Exports','Biofuels Exports'}
 				}
 			}
 			Set typesOf_intTransResults {
@@ -3580,6 +3965,8 @@ Model IESA_Opt_Package {
 						-sum[n, (namePer_node(n)=nn)*IEM_node(n)*CO2_price_single(n,p)]
 					elseif (tok='Hydrogen Use') then
 						sum[jtos, sankey_flows(nn,'Final','Hydrogen',jtos,p)+sankey_flows(nn,'Conversion','Hydrogen',jtos,p)]
+					elseif (tok='Ammonia Use') then
+						sum[jtos, sankey_flows(nn,'Final','Ammonia',jtos,p)+sankey_flows(nn,'Conversion','Ammonia',jtos,p)]
 					elseif (tok='RES share in primary') then
 						100*
 						sum[el, (el in renewables)*primaryBalance(nn,'Net',el,p)]/sum[el, primaryBalance(nn,'Net',el,p)+1e-6 | primaryBalance(nn,'Net',el,p)>=0]
@@ -3614,6 +4001,12 @@ Model IESA_Opt_Package {
 						sum[h, (residual_load(nn,h,'Residual Load',p)>0)*residual_load(nn,h,'Residual Load',p)]
 					elseif(tok='DW flex demand')*(HourlyReportValue = 'yes') then
 						sum[h, (residual_load(nn,h,'Residual Load',p)<0)*residual_load(nn,h,'Residual Load',p)]
+					elseif(tok='Oil Products Exports')then
+						sum[n, (namePer_node(n)=nn)*exportsEnergy(n,'Oil Products',p)]
+					elseif(tok='Synfuels Exports')then
+						sum[n, (namePer_node(n)=nn)*exportsEnergy(n,'Synfuels',p)]
+					elseif(tok='Biofuels Exports')then
+						sum[n, (namePer_node(n)=nn)*exportsEnergy(n,'Bio-fuels',p)]
 					endif
 				}
 			}
@@ -3634,9 +4027,11 @@ Model IESA_Opt_Package {
 						sum[(n,tb,ahe) | sum[iahe,activity_balances(tb,iahe,p)]>0, IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(nodePer_act(ahe)=n)
 						*(activity_balances(tb,ahe,p)>0)*Ptech_useNet(tb,p)*activity_balances(tb,ahe,p)]	
 					elseif (toep='import') then
-						sum[n, IEM_node(n)*(namePer_node(n)=nn)*primaryEnergy(n,'Electricity',p)]
+						-sum[(n,tb,ahe), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(nodePer_act(ahe)<>n)
+						*Ptech_useNet(tb,p)*activity_balances(tb,ahe,p)]
 					elseif (toep='export') then
-						-sum[n, IEM_node(n)*(namePer_node(n)=nn)*exportsEnergy('EU','Electricity',p)]
+						-sum[(n,tb,ahe), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_act(ahe)=n)*(nodePer_techBal(tb)<>n)
+						*(activity_balances(tb,ahe,p)<0)*Ptech_useNet(tb,p)*activity_balances(tb,ahe,p)]
 					elseif (toep='net') then
 						sum[(n,tb,ahe) | sum[iahe,activity_balances(tb,iahe,p)]>0, IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(nodePer_act(ahe)=n)
 						*(activity_balances(tb,ahe,p)>0)*Ptech_useNet(tb,p)*activity_balances(tb,ahe,p)]
@@ -3672,9 +4067,9 @@ Model IESA_Opt_Package {
 					elseif (tox='vehicle-to-grid') then
 						-sum[(h,tf,ah), (namePer_node(nodePer_techBal(tf))=nn)*PdeltaQ_UP(h,tf,p)*dQ_hourly(tf,ah)*(flexibilityType_tech(tf)='EV P-to-Grid')*(ah in activitiesHour_electricity)]
 					elseif (tox='imports') then
-						sum[(h,tb), (namePer_node(nodePer_techBal(tb))=nn)*Ptech_useHourlyNet(h,tb,p)*(tb='PNL01_IM')]
+						sum[(h,tb,ahe), (namePer_node(nodePer_techBal(tb))=nn)*(nodePer_act(ahe)<>nodePer_techBal(tb))*(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)]
 					elseif (tox='exports') then
-						sum[(h,tb), (namePer_node(nodePer_techBal(tb))=nn)*Ptech_useHourlyNet(h,tb,p)*(tb='PNL01_EX')]
+						-sum[(h,tb,ahe), (namePer_node(nodePer_act(ahe))=nn)*(nodePer_techBal(tb)<>nodePer_act(ahe))*(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ahe,p)]
 					elseif (tox='curtailment') then
 						-sum[(h,th,ae), (namePer_node(nodePer_techBal(th))=nn)*((labelPer_act(ae)='Wind')+(labelPer_act(ae)='Solar'))*(activity_balances(th,ae,p)<0)*
 						(Ptech_useHourly(h,th,p)-PtechStock(th,p)*cap2act(th)*hourly_profiles(h,profileType_tech(th)))]
@@ -3708,11 +4103,11 @@ Model IESA_Opt_Package {
 						-sum[(h,tf,ah), (namePer_node(nodePer_techBal(tf))=nn)*(tech_sector(tf)=z)*(activityPer_tech(tf)=as)*
 						PdeltaQ_UP(h,tf,p)*dQ_hourly(tf,ah)*(flexibilityType_tech(tf)='EV P-to-Grid')*(ah in activitiesHour_electricity)]
 					elseif (tox='imports') then
-						sum[(h,tb), (namePer_node(nodePer_techBal(tb))=nn)*Ptech_useHourlyNet(h,tb,p)*(tech_sector(tb)=z)*
-						(activityPer_tech(tb)=as)*(tb='PNL01_IM')]
+						sum[(h,tb,ahe), (namePer_node(nodePer_techBal(tb))=nn)*(nodePer_act(ahe)<>nodePer_techBal(tb))*(tech_sector(tb)=z)*
+						(activityPer_tech(tb)=as)*(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)]
 					elseif (tox='exports') then
-						sum[(h,tb), (namePer_node(nodePer_techBal(tb))=nn)*Ptech_useHourlyNet(h,tb,p)*(tech_sector(tb)=z)*
-						(activityPer_tech(tb)=as)*(tb='PNL01_EX')]
+						-sum[(h,tb,ahe), (namePer_node(nodePer_act(ahe))=nn)*(nodePer_techBal(tb)<>nodePer_act(ahe))*(tech_sector(tb)=z)*
+						(activityPer_tech(tb)=as)*(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ahe,p)]
 					elseif (tox='curtailment') then
 						-sum[(h,th,ae), (namePer_node(nodePer_techBal(th))=nn)*((labelPer_act(ae)='Wind')+(labelPer_act(ae)='Solar'))*(activity_balances(th,ae,p)<0)*
 						(tech_sector(th)=z)*(activityPer_tech(th)=as)*(Ptech_useHourly(h,th,p)-PtechStock(th,p)*cap2act(th)*hourly_profiles(h,profileType_tech(th)))]
@@ -3780,9 +4175,11 @@ Model IESA_Opt_Package {
 						-sum[(h,ah), (namePer_node(nodePer_techBal(tb))=nn)*
 						PdeltaQ_UP(h,tb,p)*dQ_hourly(tb,ah)*(flexibilityType_tech(tb)='EV P-to-Grid')*(ah in activitiesHour_electricity)]
 					elseif (tox='imports') then
-						sum[(h), (namePer_node(nodePer_techBal(tb))=nn)*Ptech_useHourlyNet(h,tb,p)*(tb='PNL01_IM')]
+						sum[(h,ahe), (namePer_node(nodePer_techBal(tb))=nn)*(nodePer_act(ahe)<>nodePer_techBal(tb))*
+						(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)]
 					elseif (tox='exports') then
-						sum[(h), (namePer_node(nodePer_techBal(tb))=nn)*Ptech_useHourlyNet(h,tb,p)*(tb='PNL01_EX')]
+						-sum[(h,ahe), (namePer_node(nodePer_act(ahe))=nn)*(nodePer_techBal(tb)<>nodePer_act(ahe))*
+						(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ahe,p)]
 					elseif (tox='curtailment') then
 						-sum[(h,ae), (namePer_node(nodePer_techBal(tb))=nn)*((labelPer_act(ae)='Wind')+(labelPer_act(ae)='Solar'))*
 						(activity_balances(tb,ae,p)<0)*(Ptech_useHourlyNet(h,tb,p)-PtechStock(tb,p)*cap2act(tb)*hourly_profiles(h,profileType_tech(tb)))]
@@ -3998,8 +4395,42 @@ Model IESA_Opt_Package {
 				IndexDomain: (nn,z,as,tots,toc,pnz);
 				InitialData: 0;
 			}
+			Parameter Rshadow_energyPrices {
+				IndexDomain: (nn,ae,pnz);
+				InitialData: 0;
+			}
+			Parameter Rshadow_CO2Prices {
+				IndexDomain: (nn,ac,pnz);
+				InitialData: 0;
+			}
 		}
 		DeclarationSection Others {
+			Parameter objFun_capCosts {
+				IndexDomain: ps;
+				Definition: {
+					sum[(t,jp), InvMat_lifeTime(t,jp,ps)*
+								(cap_investments(t,jp)*inv_cost(t,jp)*CRF(t)				!New invetments
+								+sum[it, retrofitting(it,t,jp)*inv_cost(t,jp)*CRF(t)]			!Retroffiting aditions
+								-sum[it, retrofitting(t,it,jp)*inv_cost(t,jp)*CRF(t)]			!Retrofitting substractions (yes, for the whole lifetime, as only the difference in cost is assumed to be paid)
+								-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*CRF(t)) 	!Recovered costs of decommisioning forwarded to the substitute investment
+								]
+				}
+			}
+			Parameter average_interconnectedPrice {
+				IndexDomain: (ain,p);
+				Definition: sum[h, interconnected_prices(h,ain,p)]/card(h);
+			}
+			Parameter objFun_operation {
+				IndexDomain: ps;
+				Definition: {
+					sum[t, tech_use(t,ps)*(vom_cost(t,ps)+1e-6)] !Variable costs (including fuel costs)
+					+sum[(h,thin), tech_useHourly(h,thin,ps)*(vom_hourly(h,thin,ps)+1e-16)]!Electricity costs of interconnected nodes
+					+sum[(h,t), (deltaU_CHP(h,t,ps)+deltaS_shed(h,t,ps))*(vom_cost(t,ps)+1e-10)] !Deviations in tech use due to flexibility
+					+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fix costs
+					+1e-6*sum[(h,tf), deltaQ_DW(h,tf,ps)-deltaQ_UP(h,tf,ps)] !To avoid multiple solutions
+					+1e-6*sum[(h,ts), deltaS_shed(h,ts,ps)] !To avoid multiple solutions
+				}
+			}
 			Parameter negEmissions_controller;
 		}
 		Procedure EnergyCosts_calculator {
@@ -4010,51 +4441,54 @@ Model IESA_Opt_Package {
 				!Delete the current values of energy_costs
 				empty EnergyCosts,EnergyCosts_yearly,EnergyCosts_daily,EnergyCosts_hourly,techCosts_voc,IterCounter;
 				
-				!If we want to assume energy costs based on shadow prices
-				if EnergyPricesChoice = 'Shadow Prices' then 
-					EnergyCosts_yearly(ay,pnz) := yearly_prices(ay,pnz);
-					EnergyCosts_daily(d,ad,pnz) := daily_prices(d,ad,pnz);
-					EnergyCosts_hourly(h,ah,pnz) := hourly_prices(h,ah,pnz);
-				 endif;
 				
-				!If we want to assume energy costs based on marginal generation technologies' SRMC
-				if EnergyPricesChoice = 'Marginal Costs' then 
+				!Energy costs based on (marginal) cost of generation technologies' SRMC
+				while(IterCounter<5) do
+					!Initialize by assigning primary costs
+					techCosts_voc(h,tb,pnz) := vom_cost(tb,pnz)+vom_hourly(h,tb,pnz)
+						+sum[ay, -activity_balances(tb,ay,pnz)*EnergyCosts_yearly(ay,pnz)*(activity_balances(tb,ay,pnz)<0)*TechExclussiveness(tb,pnz)] !For yearly activities
+						+sum[ad, -activity_balances(tb,ad,pnz)*EnergyCosts_daily(dayPer_hour(h),ad,pnz)*(activity_balances(tb,ad,pnz)<0)*TechExclussiveness(tb,pnz)] !For daily activities
+						+sum[ah, -activity_balances(tb,ah,pnz)*EnergyCosts_hourly(h,ah,pnz)*(activity_balances(tb,ah,pnz)<0)*TechExclussiveness(tb,pnz)] !For daily activities
+						+sum[ac, -activity_balances(tb,ac,pnz)*EmissionCosts(ac,pnz)*(activityPer_tech(tb)<>ac)*TechExclussiveness(tb,pnz)]; !For emission costs
 				
-					while(IterCounter<5) do
-						!Initialize by assigning primary costs
-						techCosts_voc(h,tb,pnz) := vom_cost(tb,pnz)
-							+sum[ay, -activity_balances(tb,ay,pnz)*EnergyCosts_yearly(ay,pnz)*(activity_balances(tb,ay,pnz)<0)*TechExclussiveness(tb,pnz)] !For yearly activities
-							+sum[ad, -activity_balances(tb,ad,pnz)*EnergyCosts_daily(dayPer_hour(h),ad,pnz)*(activity_balances(tb,ad,pnz)<0)*TechExclussiveness(tb,pnz)] !For daily activities
-							+sum[ah, -activity_balances(tb,ah,pnz)*EnergyCosts_hourly(h,ah,pnz)*(activity_balances(tb,ah,pnz)<0)*TechExclussiveness(tb,pnz)] !For daily activities
-							+sum[ac, -activity_balances(tb,ac,pnz)*EmissionCosts(ac,pnz)*(activityPer_tech(tb)<>ac)*TechExclussiveness(tb,pnz)]; !For emission costs
+					!Obtain yearly energy costs for yearly energy activities
+					EnergyCosts_yearly(ay,pnz) := (sum[tb, (activityPer_tech(tb)=ay)*Ptech_useNet(tb,pnz)]>1e-2)*sum[(tb,h), 
+						(activityPer_tech(tb)=ay)*Ptech_useNet(tb,pnz)*techCosts_voc(h,tb,pnz)]/(sum[tb, (activityPer_tech(tb)=ay)*Ptech_useNet(tb,pnz)+1e-20]*card(hours));
 				
-						!Obtain yearly energy costs for yearly energy activities
-						EnergyCosts_yearly(ay,pnz) := (sum[tb, (activityPer_tech(tb)=ay)*Ptech_useNet(tb,pnz)]>1e-2)*sum[(tb,h), 
-							(activityPer_tech(tb)=ay)*Ptech_useNet(tb,pnz)*techCosts_voc(h,tb,pnz)]/(sum[tb, (activityPer_tech(tb)=ay)*Ptech_useNet(tb,pnz)+1e-20]*card(hours));
+					!Obtain daily energy costs for daily energy activities
+					EnergyCosts_daily(d,ad,pnz) := sum[(tb,h), Ptech_useDailyNet(d,tb,pnz)*(activityPer_tech(tb)=ad)*(dayPer_hour(h)=d)/hoursPer_day*techCosts_voc(h,tb,pnz)]
+					/sum[tb, Ptech_useDailyNet(d,tb,pnz)*(activityPer_tech(tb)=ad)+1e-20];
 				
-						!Obtain daily energy costs for daily energy activities
-						EnergyCosts_daily(d,ad,pnz) := sum[(tb,h), Ptech_useDailyNet(d,tb,pnz)*(activityPer_tech(tb)=ad)*(dayPer_hour(h)=d)/hoursPer_day*techCosts_voc(h,tb,pnz)]
-						/sum[tb, Ptech_useDailyNet(d,tb,pnz)*(activityPer_tech(tb)=ad)+1e-20];
+					!Obtain hourly energy costs for hourly energy activities
+					EnergyCosts_hourly(h,ah,pnz) := max(tb,(Ptech_useHourlyNet(h,tb,pnz)>0.001)*(activityPer_tech(tb)=ah)*techCosts_voc(h,tb,pnz));
 				
-						!Obtain hourly energy costs for hourly energy activities
-						EnergyCosts_hourly(h,ah,pnz) := max(tb,(Ptech_useHourlyNet(h,tb,pnz)>0.001)*(activityPer_tech(tb)=ah)*techCosts_voc(h,tb,pnz));
+					!Obtain secondary activities cost assuming there shpuld only be yearly activities without a main technology
+					EnergyCosts_yearly(ass,pnz) := (sum[tb,(activity_balances(tb,ass,pnz)>0)*Ptech_useNet(tb,pnz)]>1e-2)*sum[(tb,h), 
+						(activity_balances(tb,ass,pnz)>0)*Ptech_useNet(tb,pnz)*techCosts_voc(h,tb,pnz)]/(sum[tb, (activity_balances(tb,ass,pnz)>0)*Ptech_useNet(tb,pnz)+1e-20]*card(hours));
 				
-						!Obtain secondary activities cost assuming there shpuld only be yearly activities without a main technology
-						EnergyCosts_yearly(ass,pnz) := (sum[tb,(activity_balances(tb,ass,pnz)>0)*Ptech_useNet(tb,pnz)]>1e-2)*sum[(tb,h), 
-							(activity_balances(tb,ass,pnz)>0)*Ptech_useNet(tb,pnz)*techCosts_voc(h,tb,pnz)]/(sum[tb, (activity_balances(tb,ass,pnz)>0)*Ptech_useNet(tb,pnz)+1e-20]*card(hours));
-				
-						IterCounter := IterCounter + 1;
-					endwhile;
-				
-				endif;
+					IterCounter := IterCounter + 1;
+				endwhile;
 				
 				!Merge the costs
-				EnergyCosts(h,ae,pnz) := EnergyCosts_yearly(ae,pnz) + EnergyCosts_daily(dayPer_hour(h),ae,pnz) + EnergyCosts_hourly(h,ae,pnz);
+				if (EnergyPricesChoice = 'Marginal Costs') then 
+					EnergyCosts(h,ae,pnz) := EnergyCosts_yearly(ae,pnz) + EnergyCosts_daily(dayPer_hour(h),ae,pnz) + EnergyCosts_hourly(h,ae,pnz);
+				elseif (EnergyPricesChoice = 'Shadow Prices') then
+					EnergyCosts(h,ae,pnz) := EnergyCosts_yearly(ae,pnz) + EnergyCosts_daily(dayPer_hour(h),ae,pnz) + hourly_prices(h,ae,pnz);
+					EnergyCosts_hourly(h,ae,pnz) := hourly_prices(h,ae,pnz);
+				endif;
 				
 				!Fix the zeros due to non-usage of primaries
-				EnergyCosts(h,ae,pnz) := EnergyCosts(h,ae,pnz)
-					+ sum[tb, (activityPer_tech(tb)=ae)*(tech_category(tb)='Primary')*(Ptech_useNet(tb,pnz)<1e-2)*vom_cost(tb,pnz)]
+				EnergyCosts(h,ae,pnz) := EnergyCosts(h,ae,pnz) + yearly_prices(ae,pnz)		
 					*(EnergyCosts_yearly(ae,pnz)=0)*(((ae in activities_hour)+(ae in activities_day))=0);
+				
+				!!Fix the zeros due to non-usage of primaries
+				!EnergyCosts(h,ae,pnz) := EnergyCosts(h,ae,pnz)
+				!	+ sum[tb, (activityPer_tech(tb)=ae)*(tech_category(tb)='Primary')*(Ptech_useNet(tb,pnz)<1e-2)*vom_cost(tb,pnz)]
+				!	*(EnergyCosts_yearly(ae,pnz)=0)*(((ae in activities_hour)+(ae in activities_day))=0);
+				
+				
+				!Empty houry tech costs parameter to save memory
+				empty techCosts_voc;
 				
 				StatusMessage("Energy costs were succesfully obtained. " );
 			}
@@ -4081,6 +4515,10 @@ Model IESA_Opt_Package {
 						+(PdeltaB_DW(dayPer_hour(h),itb,p)-PdeltaB_UP(dayPer_hour(h),itb,p))/hoursPer_day !Gas buffers consumption (asssuming flat hourly consumption of electricity)
 						+Ptech_use(itb,p)*hourly_profiles(h,profileType_tech(itb))  !Operation of all technologies
 					)]
+					-sum[(ah,itb), IEM_node(nodePer_techBal(itb))*(namePer_node(nodePer_act(ah))=nn)*(namePer_node(nodePer_techBal(itb))=nn)*
+						(labelPer_act(ah)='Electricity')*(tech_subsector(itb)="XC Trade")*(tech_category(itb)<>"Primary")*
+						activity_balances(itb,ah,p)*Ptech_useHourly(h,itb,p) !Operation of all technologies
+					]	
 				elseif (torl='Wind') then
 					-sum[(ae,tb), (labelPer_act(ae)='Wind')*(activity_balances(tb,ae,p)<0)*(namePer_node(nodePer_techBal(tb))=nn)*IEM_node(nodePer_techBal(tb))*
 						PtechStock(tb,p)*cap2act(tb)*hourly_profiles(h,profileType_tech(tb))]
@@ -4113,9 +4551,11 @@ Model IESA_Opt_Package {
 				!Obtain decomposition residual load
 				decomposition_resLoad(nn,h,torlf,p) := (
 				if (torlf='Imports') then
-					sum[(n,tb), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tb='PNL01_IM')*Ptech_useHourlyNet(h,tb,p)]
+					sum[(n,tb,ahe), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(nodePer_act(ahe)<>n)
+					*(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)]
 				elseif (torlf='Exports') then
-					-sum[(n,tb), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tb='PNL01_EX')*Ptech_useHourlyNet(h,tb,p)]
+					sum[(n,tb,ahe), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_act(ahe)=n)*(nodePer_techBal(tb)<>n)
+					*(activity_balances(tb,ahe,p)<0)*Ptech_useHourlyNet(h,tb,p)*activity_balances(tb,ahe,p)]
 				elseif (torlf='Curtailment') then
 					sum[(ae,th), (labelPer_act(ae)='Wind')*(activity_balances(th,ae,p)<0)*(namePer_node(nodePer_techBal(th))=nn)*IEM_node(nodePer_techBal(th))*
 					(Ptech_useHourly(h,th,p)-PtechStock(th,p)*cap2act(th)*hourly_profiles(h,profileType_tech(th)))]
@@ -4179,7 +4619,8 @@ Model IESA_Opt_Package {
 				empty Rfinal_decomposition, RcurtailmentRES, Relectricity_parameters, Rflexibility_volumes, Rkey_indicators, RLCOE, RSectoralCosts_cascade;
 				empty RSystemCosts_sec_tot, Rprimary_renewable, REnergyCosts_hourly, REnergyCosts_nodeD, RPlanningDecissions_tech, RintTransport_indicators;
 				empty REnergyCosts_node, Rresidual_load, RSystemCosts_act_n, Remissions_act, Rflexibility_volumesAct, RfinalEnergy_matrixAct, Rdecomposition_resLoad;
-				empty Rdecomposition_resLoadY, Rflexibility_volumesTech, RenergyUse_act, Remissions_tech, RLCOP_secE, RLCOP_act;
+				empty Rdecomposition_resLoadY, Rflexibility_volumesTech, RenergyUse_act, Remissions_tech, RLCOP_secE, RLCOP_act, Rshadow_energyPrices;
+				empty Rshadow_CO2Prices;
 				
 				!Assign post-processed parameters
 				RSystemCosts_n(nn,toc,pnz) := SystemCosts_n(nn,toc,pnz);
@@ -4206,7 +4647,7 @@ Model IESA_Opt_Package {
 				RSectoralCosts_cascade(nn,z,toc,pnz) := SectoralCosts_cascade(nn,z,toc,pnz);
 				RSystemCosts_sec_tot(nn,z,pnz) := SystemCosts_sec_tot(nn,z,pnz);
 				Rprimary_renewable(nn,el,pnz) := primary_renewable(nn,el,pnz);
-				RPlanningDecissions_tech(nn,t,topd,pnz) := PlanningDecissions_tech(nn,t,topd,pnz);
+				RPlanningDecissions_tech(nn,t,topd,pnz) := PlanningDecisions_tech(nn,t,topd,pnz);
 				RPowerInfo_act(ahee,topi,tb,pnz) := PowerInfo_act(ahee,topi,tb,pnz);
 				RXCinfo_act(iahee,ahee,topi,tb,pnz) := XCinfo_act(iahee,ahee,topi,tb,pnz);
 				RintTransport_indicators(toitr,pnz) := intTransport_indicators(toitr,pnz);
@@ -4220,6 +4661,8 @@ Model IESA_Opt_Package {
 				Remissions_tech(nn,z,as,tb,ac,pnz) := emissions_tech(nn,z,as,tb,ac,pnz);
 				RLCOP_secE(nn,z,tots,toc,pnz) := LCOP_secE(nn,z,tots,toc,pnz);
 				RLCOP_act(nn,z,as,tots,toc,pnz) := LCOP_act(nn,z,as,tots,toc,pnz);
+				Rshadow_energyPrices(nn,ae,pnz) := shadow_energyPrices(nn,ae,pnz);
+				Rshadow_CO2Prices(nn,ac,pnz) := shadow_CO2Prices(nn,ac,pnz);
 				
 				!If hourly reports are required
 				if (HourlyReportValue = 'yes') then
@@ -4333,6 +4776,8 @@ Model IESA_Opt_Package {
 				Remissions_tech(nn,z,as,tb,ac,pnz) := round(Remissions_tech(nn,z,as,tb,ac,pnz),2);
 				RLCOP_secE(nn,z,tots,toc,pnz) := round(RLCOP_secE(nn,z,tots,toc,pnz),2);
 				RLCOP_act(nn,z,as,tots,toc,pnz) := round(RLCOP_act(nn,z,as,tots,toc,pnz),2);
+				Rshadow_energyPrices(nn,ae,pnz) := round(Rshadow_energyPrices(nn,ae,pnz),2);
+				Rshadow_CO2Prices(nn,ac,pnz) := round(Rshadow_CO2Prices(nn,ac,pnz),2);
 				
 				!If hourly reports are required
 				if (HourlyReportValue = 'yes') then
@@ -4429,6 +4874,12 @@ Model IESA_Opt_Package {
 					{'Pstock','min-max'}
 				}
 			}
+			Set ObjFunOptions {
+				Index: offo, ioffo, joffo;
+				Definition: {
+					{'IESA-Opt v4.2','IESA-Opt v4.3', 'IESA-Opt N'}
+				}
+			}
 			ElementParameter OutputFolderValue {
 				Range: OutputFolderOptions;
 				InitialData: 'automatic';
@@ -4449,6 +4900,10 @@ Model IESA_Opt_Package {
 				Range: IntrayearOptions;
 				InitialData: 'Pstock';
 			}
+			ElementParameter ObjFunValue {
+				Range: ObjFunOptions;
+				InitialData: 'IESA-Opt v4.3';
+			}
 			ElementParameter Ref2020Value {
 				Range: YesNoOptions;
 				InitialData: 'no';
@@ -4459,7 +4914,7 @@ Model IESA_Opt_Package {
 			ElementParameter DataReadingLocation {
 				Range: InputFilesSet;
 			}
-			ElementParameter Crossover_enabling {
+			ElementParameter crossover_enabling {
 				Range: YesNoOptions;
 				InitialData: 'yes';
 			}
@@ -4475,7 +4930,7 @@ Model IESA_Opt_Package {
 			StringParameter OutputFolderPrefix;
 			ElementParameter EnergyPricesChoice {
 				Range: EnergyPricesOptions;
-				InitialData: 'Shadow Prices';
+				InitialData: 'Marginal Costs';
 			}
 			ElementParameter SolverChoiceTransition {
 				Range: AllSolvers;
@@ -4653,840 +5108,866 @@ Model IESA_Opt_Package {
 			Procedure DataReading {
 				Arguments: (FileLocation);
 				Body: {
-					block 
-					
-					! Clear the parameters
-					if (REF2020Value='no') then
-						empty hours_orig, activities_original, tech_balancers, tech_infra, dispatch_type, activity_type;
-						empty  process_type, profile_typeRead, flexibility_type, range_type, energy_labels, sectors, nodes, node_names;
-					endif;
-					
-					empty dispatchType_act, activityType_act, activityPer_techOrig, processType_tech, profileType_techRead, flexibilityType_tech; 
-					empty act_units, tech_name, tech_category, tech_sector, tech_subsector, tech_units, scenario_description, feedstockUse_techOrig;
-					empty activities_netVolumesOrig, activity_balancesRef, activity_EffImprov, hourly_profilesReadOrig, monthPer_hourOrig, XC_TransmissionLoss, emissionTarget;
-					empty emmisionTarget_bin, roomFor_negative, inv_cost, decom_frac, fom_cost, vom_cost, depreciation_rate, construction_time, ec_lifetime, tec_lifetime;
-					empty cap2act, ramping, HVtoMV_TransformerLoss, MVtoLV_TransformerLoss, HVtoLV_TransformerLoss, infra_range, infra_activityOrig, techStock_bin;
-					empty techStock_exist, decom_planned, techStock_min, techStock_max, flex_capacity, flex_losses, flex_storage, flex_range, flex_activityOrig;
-					empty flex_nnLoad, avg_journey, avg_speed, buffer_activityOrig, bufferUP_capacity, bufferDW_capacity, buffer_storage, baseload_treshold, shedding_inLoad;
-					empty namePer_node, IEM_node, IEM_sector, is_renewable, labelPer_act, actChange_maxOrig, techChange_max, phs_capacity, phs_storage ,phs_losses;
-					empty CHP_prodOrig, CHP_fuelOrig, CHP_eta, CHP_range, CHPdev_use, CHPdev_PtoH, shed_capacity, shed_volume, shed_range, hybrid_substitute, hybrid_ratio; 
-					
-					! Open the workbook
-					if axll::WorkBookIsOpen(FileLocation) then
-					       axll::SelectWorkBook(FileLocation);
-					else
-					       axll::OpenWorkBook(FileLocation);
-					endif;
-					
-					!===========================================================   Description   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("IESA-Opt database");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  scenario_description,
-						Cell           		:  "E21");
-					
-					!===========================================================   Parameters   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Parameters");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  roomFor_negative,
-						Cell           		:  "B4");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  XC_TransmissionLoss,
-						Cell           		:  "B5");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  baseload_treshold,
-						Cell           		:  "B7");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  shedding_inLoad,
-						Cell           		:  "B8");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  social_discount_rate,
-						Cell           		:  "B10");
-					
-					!Read a scalar
-					axll::ReadSingleValue(
-						ScalarReference 	:  base_year,
-						Cell           		:  "B11");
-					
-					
-					!===========================================================   Types   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Types");
-					if (REF2020Value='no') then
-						!Read the sets
-						axll::ReadSet(
-							SetReference    			:  dispatch_type,
-							SetRange        			:  "A4:A7",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  activity_type,
-							SetRange        			:  "B4:B7",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  process_type,
-							SetRange        			:  "C4:C30",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  flexibility_type,
-							SetRange        			:  "D4:D30",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  range_type,
-							SetRange        			:  "E4:E12",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  sectors,
-							SetRange        			:  "F4:F50",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  nodes,
-							SetRange        			:  "H4:H50",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  node_names,
-							SetRange        			:  "I4:I50",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  energy_labels,
-							SetRange        			:  "K4:K50",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					endif;
-					
-					!Read the data
-					axll::ReadList(
-					       IdentifierReference 		:  IEM_sector,
-					       RowHeaderRange      		:  "F4:F50",
-					       DataRange        		:  "G4:G50",
-					       MergeWithExistingData		:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 		:  namePer_node,
-					       RowHeaderRange      		:  "H4:H50",
-					       DataRange        		:  "I4:I50",
-					       MergeWithExistingData		:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 		:  IEM_node,
-					       RowHeaderRange      		:  "H4:H50",
-					       DataRange        		:  "J4:J50",
-					       MergeWithExistingData		:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 		:  is_renewable,
-					       RowHeaderRange      		:  "K4:K50",
-					       DataRange        		:  "L4:L50",
-					       MergeWithExistingData		:  0);
-					
-					!===========================================================   Activities   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Activities");
-					
-					if (REF2020Value='no') then
-						!Read the sets
-					!	axll::ReadSet(
-					!		SetReference    			:  periods,
-					!		SetRange        			:  "C3:I3",
-					!		ExtendSuperSets 			:  1,
-					!		MergeWithExistingElements		:  0,
-					!		SkipEmptyCells				:  1);
-					
-						axll::ReadSet(
-							SetReference    			:  activities_original,
-							SetRange        			:  "A9:A1000",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					endif;
-					
-					!Read the data       
-					axll::ReadList(
-					       IdentifierReference 	:   act_units,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "B9:B1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:   actChange_maxOrig,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "L9:L1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:   dispatchType_act,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "M9:M1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:   activityType_act,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "N9:N1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  nodePer_act,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "O9:O1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  emmisionTarget_bin,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "P9:P1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  labelPer_act,
-					       RowHeaderRange      	:  "A9:A1000",
-					       DataRange        	:  "Q9:Q1000",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  activities_netVolumesOrig,
-					       RowHeaderRange      	:  "A9:A1000",
-					       ColumnHeaderRange      	:  "C8:K8",
-					       DataRange           	:  "C9:K1000",
-					       MergeWithExistingData	:  0);
-					
-					!===========================================================   HourlyProfiles   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("HourlyProfiles");
-					
-					!Read the sets
-					if (REF2020Value='no') then
-						axll::ReadSet(
-							SetReference    			:  hours_orig,
-							SetRange        			:  "A5:A8764",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					endif;
-					
-					axll::ReadSet(
-					       SetReference    			:  profile_typeRead,
-					       SetRange        			:  "D3:ZZ3",
-					       ExtendSuperSets 			:  1,
-					       MergeWithExistingElements	:  0,
-					       SkipEmptyCells			:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  monthPer_hourOrig,
-					       RowHeaderRange      	:  "A5:A8764",
-					       DataRange           	:  "C5:C8764",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  hourly_profilesReadOrig,
-					       RowHeaderRange      	:  "A5:A8764",
-					       ColumnHeaderRange      	:  "D3:ZZ3",
-					       DataRange           	:  "D5:ZZ8764",
-					       MergeWithExistingData	:  0);       
-					
-					!===========================================================   Technologies   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Technologies");
-					
-					!Read the sets
-					if (REF2020Value='no') then
-						axll::ReadSet(
-							SetReference    			:  tech_balancers,
-							SetRange        			:  "A7:A5001",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					endif;
-					
-					!Read tech info
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_category,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "B7:B5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_sector,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "C7:C5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_subsector,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "D7:D5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  activityPer_techOrig,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "E7:E5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_name,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "F7:F5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_units,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "G7:G5001",
-					       MergeWithExistingData	:  0);
-					
-					!Read the data
-					axll::ReadTable(
-					       IdentifierReference 	:  inv_cost,
-					       RowHeaderRange      	:  "A7:A5001",
-					       ColumnHeaderRange      	:  "H4:P4",
-					       DataRange           	:  "H7:P5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  decom_frac,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "Q7:Q5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  fom_cost,
-					       RowHeaderRange      	:  "A7:A5001",
-					       ColumnHeaderRange      	:  "R4:Z4",
-					       DataRange           	:  "R7:Z5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  vom_cost,
-					       RowHeaderRange      	:  "A7:A5001",
-					       ColumnHeaderRange      	:  "AA4:AI4",
-					       DataRange           	:  "AA7:AI5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  depreciation_rate,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "AJ7:AJ5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  construction_time,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "AK7:AK5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  ec_lifetime,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "AL7:AL5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tec_lifetime,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "AM7:AM5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  cap2act,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "AN7:AN5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  processType_tech,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AO7:AO5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  profileType_techRead,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AP7:AP5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  ramping,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AQ7:AQ5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  CHP_prodOrig,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AR7:AR5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  CHP_fuelOrig,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AS7:AS5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  CHP_eta,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AT7:AT5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  CHP_range,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AU7:AU5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  CHPdev_use,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AV7:AV5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  CHPdev_PtoH,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AW7:AW5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  shed_capacity,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AX7:AX5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  shed_volume,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AY7:AY5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  shed_range,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "AZ7:AZ5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  phs_capacity,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BA7:BA5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  phs_storage,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BB7:BB5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  phs_losses,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BC7:BC5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flexibilityType_tech,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BD7:BD5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flex_activityOrig,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BE7:BE5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flex_capacity,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BF7:BF5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flex_storage,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BG7:BG5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flex_range,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BH7:BH5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flex_losses,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BI7:BI5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  flex_nnLoad,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BJ7:BJ5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  avg_journey,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BK7:BK5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  avg_speed,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BL7:BL5001",
-					       MergeWithExistingData	:  0);       
-					
-					axll::ReadList(
-					       IdentifierReference 	:  buffer_activityOrig,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BM7:BM5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  bufferUP_capacity,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BN7:BN5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  bufferDW_capacity,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BO7:BO5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  buffer_storage,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange        	:  "BP7:BP5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  techStock_bin,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "BQ7:BQ5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  techChange_max,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "BS7:BS5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  techStock_exist,
-					       RowHeaderRange      	:  "A7:A5001",
-					       DataRange           	:  "BT7:BT5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  decom_planned,
-					       RowHeaderRange      	:  "A7:A5001",
-					       ColumnHeaderRange      	:  "BU5:CB5",
-					       DataRange           	:  "BU7:CB5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  techStock_min,
-					       RowHeaderRange      	:  "A7:A5001",
-					       ColumnHeaderRange      	:  "CC5:CK5",
-					       DataRange           	:  "CC7:CK5001",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  techStock_max,
-					       RowHeaderRange      	:  "A7:A5001",
-					       ColumnHeaderRange      	:  "CL5:CT5",
-					       DataRange           	:  "CL7:CT5001",
-					       MergeWithExistingData	:  0);
-					
-					!===========================================================   EnergyBalance   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("EnergyBalance");
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  activity_balancesRef,
-					       RowHeaderRange      	:  "A7:A5001",                                           
-					       ColumnHeaderRange      	:  "O3:AAA3", 						 !!!!
-					       DataRange           	:  "O7:AAA5001", 
-					       MergeWithExistingData	:  0);
-					
-					!===========================================================   Infrastructure   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Infrastructure");
-					
-					!Read the sets
-					if (REF2020Value='no') then
-						axll::ReadSet(
-							SetReference    			:  tech_infra,
-							SetRange        			:  "A6:A100",
-							ExtendSuperSets 			:  1,
-							MergeWithExistingElements		:  0,
-							SkipEmptyCells				:  1);
-					endif;
-					
-					!Include infra technologies into th set of technologies
-					technologies := tech_balancers + tech_infra;
-					
-					!Read tech info
-					axll::ReadList(
-					       IdentifierReference 	:  tech_name,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "E6:E100",
-					       MergeWithExistingData	:  1);
-					
-					!Read tech info
-					axll::ReadList(
-					       IdentifierReference 	:  tech_units,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "F6:F100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_category,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "B6:B100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_sector,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "C6:C100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tech_subsector,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "D6:D100",
-					       MergeWithExistingData	:  1);
-					
-					!Read the data
-					axll::ReadTable(
-					       IdentifierReference 	:  inv_cost,
-					       RowHeaderRange      	:  "A6:A100",
-					       ColumnHeaderRange      	:  "G4:O4",
-					       DataRange           	:  "G6:O100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  decom_frac,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "P6:P100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  fom_cost,
-					       RowHeaderRange      	:  "A6:A100",
-					       ColumnHeaderRange      	:  "Q4:Y4",
-					       DataRange           	:  "Q6:Y100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  depreciation_rate,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "Z6:Z100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  ec_lifetime,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AA6:AA100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  tec_lifetime,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AB6:AB100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  cap2act,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AC6:AC100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  infra_range,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AD6:AD100",
-					       MergeWithExistingData	:  0);       
-					
-					axll::ReadList(
-					       IdentifierReference 	:  infra_activityOrig,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AE6:AE100",
-					       MergeWithExistingData	:  0);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  techStock_bin,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AF6:AF100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  techChange_max,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AH6:AH100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  techStock_exist,
-					       RowHeaderRange      	:  "A6:A100",
-					       DataRange           	:  "AI6:AI100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  decom_planned,
-					       RowHeaderRange      	:  "A6:A100",
-					       ColumnHeaderRange      	:  "AJ3:AQ3",
-					       DataRange           	:  "AJ6:AQ100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  techStock_min,
-					       RowHeaderRange      	:  "A6:A100",
-					       ColumnHeaderRange      	:  "AR3:AZ3",
-					       DataRange           	:  "AR6:AZ100",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  techStock_max,
-					       RowHeaderRange      	:  "A6:A100",
-					       ColumnHeaderRange      	:  "BA3:BI3",
-					       DataRange           	:  "BA6:BI100",
-					       MergeWithExistingData	:  1);
-					
-					!===========================================================   ActGrouping   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("ActGrouping");
-					
-					!Read the sets
-					axll::ReadSet(
-					       SetReference    			:  activities_group,
-					       SetRange        			:  "A4:A30",
-					       ExtendSuperSets 			:  1,
-					       MergeWithExistingElements	:  0,
-					       SkipEmptyCells			:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  dispatchType_act,
-					       RowHeaderRange      	:  "A4:A30",
-					       DataRange           	:  "B4:B30",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  activityType_act,
-					       RowHeaderRange      	:  "A4:A30",
-					       DataRange           	:  "C4:C30",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  nodePer_act,
-					       RowHeaderRange      	:  "A4:A30",
-					       DataRange           	:  "D4:D30",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  emmisionTarget_bin,
-					       RowHeaderRange      	:  "A4:A30",
-					       DataRange           	:  "E4:E30",
-					       MergeWithExistingData	:  1);
-					
-					axll::ReadList(
-					       IdentifierReference 	:  labelPer_act,
-					       RowHeaderRange      	:  "A4:A30",
-					       DataRange           	:  "F4:F30",
-					       MergeWithExistingData	:  1);
-					
-					!Read the data
-					axll::ReadTable(
-					       IdentifierReference 	:  groupOf_activities,
-					       RowHeaderRange      	:  "H4:I30",
-					       ColumnHeaderRange      	:  "",
-					       DataRange           	:  "J4:J30",
-					       MergeWithExistingData	:  0);
-					
-					!===========================================================   EffLearning   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("EffLearning");
-					
-					axll::ReadTable(
-					       IdentifierReference 	:  activity_EffImprov,
-					       RowHeaderRange      	:  "C4:D200",
-					       ColumnHeaderRange      	:  "E3:M3",
-					       DataRange           	:  "E4:M200",
-					       MergeWithExistingData	:  0);
-					
-					!===========================================================   Feedstocks   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Feedstocks");
-					
-					axll::ReadList(
-					       IdentifierReference 	:  feedstockUse_techOrig,
-					       RowHeaderRange      	:  "C4:D200",
-					       DataRange           	:  "G4:G200",
-					       MergeWithExistingData	:  0);
-					
-					!===========================================================   Retrofitting   ============================================================
-					!Select the workbook sheet
-					axll::SelectSheet("Retrofitting");
-					
-					axll::ReadList(
-					       IdentifierReference 	:  retrofit_relations,
-					       RowHeaderRange      	:  "A4:B200",
-					       DataRange           	:  "F4:F200",
-					       MergeWithExistingData	:  0);
-					
-					axll::CloseWorkBook(FileLocation);
-					
-					onerror err do
-					
-					if (errh::Severity( err ) = 'warning') then 
-						errh::MarkAsHandled(err , 1) ;
-					else 
-						DialogError("Error in the DataReading procedure", "DataReading failed!");
-					endif;
-					
-					endblock;
+					!block 
+					
+										! Clear the parameters
+										if (REF2020Value='no') then
+											empty hours_orig, activities_original, tech_balancers, tech_infra, dispatch_type, activity_type;
+											empty  process_type, profile_typeRead, flexibility_type, range_type, energy_labels, sectors, nodes, node_names;
+										endif;
+					
+										empty dispatchType_act, activityType_act, activityPer_techOrig, processType_tech, profileType_techRead, flexibilityType_tech, interconnected_pricesOrig; 
+										empty act_units, tech_name, tech_category, tech_sector, tech_subsector, tech_units, scenario_description, feedstockUse_techOrig;
+										empty activities_netVolumesOrig, activity_balancesRef, activity_EffImprov, hourly_profilesReadOrig, monthPer_hourOrig, XC_TransmissionLoss, emissionTarget;
+										empty emmisionTarget_bin, roomFor_negative, inv_cost, decom_frac, fom_cost, vom_cost, WACC, construction_time, ec_lifetime, tec_lifetime;
+										empty cap2act, ramping, HVtoMV_TransformerLoss, MVtoLV_TransformerLoss, HVtoLV_TransformerLoss, infra_range, infra_activityOrig, techStock_bin;
+										empty techStock_exist, decom_planned, techStock_min, techStock_max, flex_capacity, flex_losses, flex_storage, flex_range, flex_activityOrig, retro_cost;
+										empty flex_nnLoad, avg_journey, avg_speed, buffer_activityOrig, bufferUP_capacity, bufferDW_capacity, buffer_storage, baseload_treshold, shedding_inLoad;
+										empty namePer_node, IEM_node, IEM_sector, is_renewable, labelPer_act, actChange_maxOrig, techChange_max, phs_capacity, phs_storage ,phs_losses;
+										empty CHP_prodOrig, CHP_fuelOrig, CHP_eta, CHP_range, CHPdev_use, CHPdev_PtoH, shed_capacity, shed_volume, shed_range, hybrid_substitute, hybrid_ratio; 
+										empty cumulative_emissions, cumulative_CO2storage;
+					
+										! Open the workbook
+										if axll::WorkBookIsOpen(FileLocation) then
+										       axll::SelectWorkBook(FileLocation);
+										else
+										       axll::OpenWorkBook(FileLocation);
+										endif;
+					
+										!Select the workbook sheet
+										axll::SelectSheet("IESA-Opt database");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  scenario_description,
+											Cell           		:  "E21");
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Parameters");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  roomFor_negative,
+											Cell           		:  "B4");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  XC_TransmissionLoss,
+											Cell           		:  "B5");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  baseload_treshold,
+											Cell           		:  "B6");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  shedding_inLoad,
+											Cell           		:  "B7");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  social_discount_rate,
+											Cell           		:  "B12");
+					
+										!Read a scalar
+										axll::ReadSingleValue(
+											ScalarReference 	:  base_year,
+											Cell           		:  "B13");
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Types");
+										if (REF2020Value='no') then
+											!Read the sets
+											axll::ReadSet(
+												SetReference    			:  dispatch_type,
+												SetRange        			:  FormatString("A4:A%i",axll::LastUsedRowNumber),
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  activity_type,
+												SetRange        			:  "B4:B8", !revised by Kira to include material conversion
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  process_type,
+												SetRange        			:  "C4:C30",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  flexibility_type,
+												SetRange        			:  "D4:D30",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  range_type,
+												SetRange        			:  "E4:E12",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  sectors,
+												SetRange        			:  "F4:F50",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  nodes,
+												SetRange        			:  "H4:H50",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  node_names,
+												SetRange        			:  "I4:I50",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  energy_labels,
+												SetRange        			:  "K4:K50",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+										endif;
+					
+										!Read the data
+										axll::ReadList(
+										       IdentifierReference 		:  IEM_sector,
+										       RowHeaderRange      		:  FormatString("F4:F%i",axll::LastUsedRowNumber),
+										       DataRange        		:  FormatString("G4:G%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData		:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 		:  namePer_node,
+										       RowHeaderRange      		:  FormatString("H4:H%i",axll::LastUsedRowNumber),
+										       DataRange        		:  FormatString("I4:I%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData		:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 		:  IEM_node,
+										       RowHeaderRange      		:  FormatString("H4:H%i",axll::LastUsedRowNumber),
+										       DataRange        		:  FormatString("J4:J%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData		:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 		:  is_renewable,
+										       RowHeaderRange      		:  FormatString("K4:K%i",axll::LastUsedRowNumber),
+										       DataRange        		:  FormatString("L4:L%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData		:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("NodeParameters");
+					
+										!Read the data
+										axll::ReadList(
+										       IdentifierReference 		:  cumulative_emissions,
+										       RowHeaderRange      		:  FormatString("A4:A%i",axll::LastUsedRowNumber),
+										       DataRange        		:  FormatString("B4:B%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData		:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 		:  cumulative_CO2storage,
+										       RowHeaderRange      		:  FormatString("A4:A%i",axll::LastUsedRowNumber),
+										       DataRange        		:  FormatString("C4:C%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData		:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Activities");
+					
+										if (REF2020Value='no') then
+											!Read the sets
+										!	axll::ReadSet(
+										!		SetReference    			:  periods,
+										!		SetRange        			:  "C3:I3",
+										!		ExtendSuperSets 			:  1,
+										!		MergeWithExistingElements		:  0,
+										!		SkipEmptyCells				:  1);
+					
+											axll::ReadSet(
+												SetReference    			:  activities_original,
+												SetRange        			:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+										endif;
+					
+										!Read the data       
+										axll::ReadList(
+										       IdentifierReference 	:   act_units,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("B9:B%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:   actChange_maxOrig,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("J9:J%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:   dispatchType_act,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("K9:K%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:   activityType_act,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("L9:L%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  nodePer_act,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("M9:M%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  emmisionTarget_bin,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("N9:N%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  labelPer_act,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("O9:O%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  activities_netVolumesOrig,
+										       RowHeaderRange      	:  FormatString("A9:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "C8:I8",
+										       DataRange           	:  FormatString("C9:I%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("HourlyProfiles");
+					
+										axll::ColumnName(axll::LastUsedColumnNumber,ColName);
+					
+										!Read the sets
+										if (REF2020Value='no') then
+											axll::ReadSet(
+												SetReference    			:  hours_orig,
+												SetRange        			:  FormatString("A5:A%i",axll::LastUsedRowNumber),
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+										endif;
+					
+										axll::ReadSet(
+										       SetReference    			:  profile_typeRead,
+										       SetRange        			:  "D3:"+ColName+"3",
+										       ExtendSuperSets 			:  1,
+										       MergeWithExistingElements	:  0,
+										       SkipEmptyCells			:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  monthPer_hourOrig,
+										       RowHeaderRange      	:  FormatString("A5:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("C5:C%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  hourly_profilesReadOrig,
+										       RowHeaderRange      	:  FormatString("A5:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "D3:"+ColName+"3",
+										       DataRange           	:  "D5:"+ColName+FormatString("%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);       
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Technologies");
+					
+										!Read the sets
+										if (REF2020Value='no') then
+											axll::ReadSet(
+												SetReference    			:  tech_balancers,
+												SetRange        			:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+										endif;
+					
+										!Read tech info
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_category,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("B7:B%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_sector,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("C7:C%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_subsector,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("D7:D%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  activityPer_techOrig,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("E7:E%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_name,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("F7:F%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_units,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("G7:G%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										!Read the data
+										axll::ReadTable(
+										       IdentifierReference 	:  inv_cost,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "H4:N4",
+										       DataRange           	:  FormatString("H7:N%i",axll::LastUsedRowNumber),,
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  decom_frac,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("O7:O%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  fom_cost,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "P4:V4",
+										       DataRange           	:  FormatString("P7:V%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  vom_cost,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "W4:AC4",
+										       DataRange           	:  FormatString("W7:AC%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  WACC,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AD7:AD%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  construction_time,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AE7:AE%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  ec_lifetime,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AF7:AF%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tec_lifetime,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AG7:AG%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  cap2act,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AH7:AH%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  processType_tech,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AI7:AI%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  profileType_techRead,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AJ7:AJ%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  ramping,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AK7:AK%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  CHP_prodOrig,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AL7:AL%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  CHP_fuelOrig,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AM7:AM%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  CHP_eta,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AN7:AN%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  CHP_range,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AO7:AO%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  CHPdev_use,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AP7:AP%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  CHPdev_PtoH,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AQ7:AQ%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  shed_capacity,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AR7:AR%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  shed_volume,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AS7:AS%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  shed_range,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AT7:AT%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  phs_capacity,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AU7:AU%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  phs_storage,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AV7:AV%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  phs_losses,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AW7:AW%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flexibilityType_tech,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AX7:AX%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flex_activityOrig,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AY7:AY%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flex_capacity,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("AZ7:AZ%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flex_storage,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BA7:BA%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flex_range,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BB7:BB%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flex_losses,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BC7:BC%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  flex_nnLoad,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BD7:BD%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  avg_journey,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BE7:BE%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  avg_speed,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BF7:BF%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);       
+					
+										axll::ReadList(
+										       IdentifierReference 	:  buffer_activityOrig,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BG7:BG%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  bufferUP_capacity,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BH7:BH%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  bufferDW_capacity,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BI7:BI%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  buffer_storage,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange        	:  FormatString("BJ7:BJ%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  techStock_bin,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("BK7:BK%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  techChange_max,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("BM7:BM%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  techStock_exist,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("BN7:BN%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  decom_planned,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "BO5:BT5",
+										       DataRange           	:  FormatString("BO7:BT%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  techStock_min,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "BU5:CA5",
+										       DataRange           	:  FormatString("BU7:CA%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  techStock_max,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "CB5:CH5",
+										       DataRange           	:  FormatString("CB7:CH%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("EnergyBalance");
+					
+										axll::ColumnName(axll::LastUsedColumnNumber,ColName);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  activity_balancesRef,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),                                           
+										       ColumnHeaderRange      	:  "O3:"+ColName+"3", 						 !!!!
+										       DataRange           	:  "O7:"+ColName+FormatString("%i",axll::LastUsedRowNumber), 
+										       MergeWithExistingData	:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Infrastructure");
+					
+										axll::ColumnName(axll::LastUsedColumnNumber,ColName);
+					
+										!Read the sets
+										if (REF2020Value='no') then
+											axll::ReadSet(
+												SetReference    			:  tech_infra,
+												SetRange        			:  "A6:A100",
+												ExtendSuperSets 			:  1,
+												MergeWithExistingElements		:  0,
+												SkipEmptyCells				:  1);
+										endif;
+					
+										!Include infra technologies into th set of technologies
+										technologies := tech_balancers + tech_infra;
+					
+										!Read tech info
+										axll::ReadList(
+										       IdentifierReference 	:  tech_name,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("E6:E%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										!Read tech info
+										axll::ReadList(
+										       IdentifierReference 	:  tech_units,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("F6:F%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_category,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("B6:B%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_sector,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("C6:C%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tech_subsector,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("D6:D%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										!Read the data
+										axll::ReadTable(
+										       IdentifierReference 	:  inv_cost,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "G4:M4",
+										       DataRange           	:  FormatString("G6:M%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  decom_frac,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("N6:N%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  fom_cost,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "O4:U4",
+										       DataRange           	:  FormatString("O6:U%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  WACC,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("V6:V%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  ec_lifetime,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("W6:W%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  tec_lifetime,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("X6:X%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  cap2act,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("Y6:Y%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  infra_range,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("Z6:Z%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);       
+					
+										axll::ReadList(
+										       IdentifierReference 	:  infra_activityOrig,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AA6:AA%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  techStock_bin,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AB6:AB%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  techChange_max,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AD6:AD%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  techStock_exist,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("AE6:AE%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  decom_planned,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "AF3:AK3",
+										       DataRange           	:  FormatString("AF6:AK%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  techStock_min,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "AL3:AR3",
+										       DataRange           	:  FormatString("AL6:AR%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  techStock_max,
+										       RowHeaderRange      	:  FormatString("A6:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "AS3:AY3",
+										       DataRange           	:  FormatString("AS6:AY%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  1);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("PriceProfiles");
+					
+										axll::ColumnName(axll::LastUsedColumnNumber,ColName);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  interconnected_pricesOrig,
+										       RowHeaderRange      	:  FormatString("A5:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "D2:"+ColName+"3",
+										       DataRange           	:  "D5:"+ColName+FormatString("%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);  
+					
+										!Select the workbook sheet
+										axll::SelectSheet("ActGrouping");
+					
+										!Read the sets
+										axll::ReadSet(
+										       SetReference    			:  activities_group,
+										       SetRange        			:  FormatString("A4:A%i",axll::LastUsedRowNumber),
+										       ExtendSuperSets 			:  1,
+										       MergeWithExistingElements	:  0,
+										       SkipEmptyCells			:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  dispatchType_act,
+										       RowHeaderRange      	:  FormatString("A4:A%i",Max(axll::LastUsedRowNumber,4)),
+										       DataRange           	:  FormatString("B4:B%i",Max(axll::LastUsedRowNumber,4)),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  activityType_act,
+										       RowHeaderRange      	:  FormatString("A4:A%i",Max(axll::LastUsedRowNumber,4)),
+										       DataRange           	:  FormatString("C4:C%i",Max(axll::LastUsedRowNumber,4)),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  nodePer_act,
+										       RowHeaderRange      	:  FormatString("A4:A%i",Max(axll::LastUsedRowNumber,4)),
+										       DataRange           	:  FormatString("D4:D%i",Max(axll::LastUsedRowNumber,4)),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  emmisionTarget_bin,
+										       RowHeaderRange      	:  FormatString("A4:A%i",Max(axll::LastUsedRowNumber,4)),
+										       DataRange           	:  FormatString("E4:E%i",Max(axll::LastUsedRowNumber,4)),
+										       MergeWithExistingData	:  1);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  labelPer_act,
+										       RowHeaderRange      	:  FormatString("A4:A%i",Max(axll::LastUsedRowNumber,4)),
+										       DataRange           	:  FormatString("F4:F%i",Max(axll::LastUsedRowNumber,4)),
+										       MergeWithExistingData	:  1);
+					
+										!Read the data
+										axll::ReadTable(
+										       IdentifierReference 	:  groupOf_activities,
+										       RowHeaderRange      	:  FormatString("H4:I%i",Max(axll::LastUsedRowNumber,4)),
+										       ColumnHeaderRange      	:  "",
+										       DataRange           	:  FormatString("J4:J%i",Max(axll::LastUsedRowNumber,4)),
+										       MergeWithExistingData	:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("EffLearning");
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  activity_EffImprov,
+										       RowHeaderRange      	:  FormatString("C4:D%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "E3:K3",
+										       DataRange           	:  FormatString("E4:K%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Feedstocks");
+					
+										axll::ReadList(
+										       IdentifierReference 	:  feedstockUse_techOrig,
+										       RowHeaderRange      	:  FormatString("C4:D%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("H4:H%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										!Select the workbook sheet
+										axll::SelectSheet("Retrofitting");
+					
+										axll::ReadList(
+										       IdentifierReference 	:  retrofit_relations,
+										       RowHeaderRange      	:  FormatString("A4:B%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("F4:F%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadList(
+										       IdentifierReference 	:  retro_cost,
+										       RowHeaderRange      	:  FormatString("A4:B%i",axll::LastUsedRowNumber),
+										       DataRange           	:  FormatString("G4:G%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::CloseWorkBook(FileLocation);
+					
+										!onerror err do
+										!
+										!errh::MarkAsHandled(err , 1) ;
+										!
+										!endblock;
+										!
 				}
+				StringParameter ColName;
 				StringParameter FileLocation {
 					Property: Input;
 				}
@@ -5518,10 +5999,11 @@ Model IESA_Opt_Package {
 					
 					!!!$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 					!!!Correct for the enabling of negative emissions
-					activities_netVolumesOrig(act,p) := activities_netVolumes(act,p) + roomFor_negative; !We force the system to mitigate a certain ammount of emission
+					activities_netVolumesOrig(act,p) := activities_netVolumesOrig(act,p) + roomFor_negative; !We force the system to mitigate a certain ammount of emission
 					!We add such enforced mitigation to the target
 					emissionTarget(n,p) := sum[tb, (nodePer_act(activityPer_tech(tb))=n)*(activityPer_tech(tb) in activities_target)*techStock_max(tb,p)] 
 					+ sum[act | nodePer_act(act)=n, activities_netVolumes(act,p)];
+					emissionTarget_cum(n) := cumulative_emissions(n) + sum[act | nodePer_act(act)=n, roomFor_negative*transition_interval];
 					
 					!We relax the max stock constrain for such technologies with the new relaxed emission target
 					for (jn in nodes) do
@@ -5571,6 +6053,8 @@ Model IESA_Opt_Package {
 						axll::CreateSheet(SheetName:"FinalEnergy_Matrix");
 						axll::CreateSheet(SheetName:"EnergyUse_Activities");
 						axll::CreateSheet(SheetName:"EnergyCosts");
+						axll::CreateSheet(SheetName:"ShadowEnergyPrices");	
+						axll::CreateSheet(SheetName:"ShadowCO2Prices");
 						axll::CreateSheet(SheetName:"Primary_Balance");
 						axll::CreateSheet(SheetName:"Primary_Renewable");
 						axll::CreateSheet(SheetName:"Final_Decomposition");
@@ -5997,11 +6481,55 @@ Model IESA_Opt_Package {
 						Cell           		:  "D1"
 					);
 					
-					!Write the table: Energy Costs (node name, activity, period)=================================================================
+					!Write the table: Energy Costs (node name, activity, period) (note from Kira: these are average hourly energy costs on an annual basis)=================================================================
 					axll::SelectSheet("EnergyCosts");
 					axll::ClearActiveSheet;	
 					axll::WriteTable(
 					  IdentifierReference : REnergyCosts_node(nn,ae,pnz),
+					  RowHeaderRange : "A2:B5000",
+					  ColumnHeaderRange : "C1:ZZ1",
+					  DataRange : "C2:ZZ5000",
+					  allowRangeOverflow : 1,
+					  writeZeros : 1,
+					);
+					!Write the parameter: Node
+					axll:: WriteSingleValue(
+						ScalarReference 	:  node_string,
+						Cell           		:  "A1"
+					);
+					!Write the parameter: Type
+					axll:: WriteSingleValue(
+						ScalarReference 	:  act_string,
+						Cell           		:  "B1"
+					);
+					
+					!Write the table: Shadow Energy Prices (node name, activity, period)=================================================================
+					axll::SelectSheet("ShadowEnergyPrices");
+					axll::ClearActiveSheet;	
+					axll::WriteTable(
+					  IdentifierReference : Rshadow_energyPrices(nn,ae,pnz),
+					  RowHeaderRange : "A2:B5000",
+					  ColumnHeaderRange : "C1:ZZ1",
+					  DataRange : "C2:ZZ5000",
+					  allowRangeOverflow : 1,
+					  writeZeros : 1,
+					);
+					!Write the parameter: Node
+					axll:: WriteSingleValue(
+						ScalarReference 	:  node_string,
+						Cell           		:  "A1"
+					);
+					!Write the parameter: Type
+					axll:: WriteSingleValue(
+						ScalarReference 	:  act_string,
+						Cell           		:  "B1"
+					);
+					
+					!Write the table: Shadow CO2 Prices (node name, activity, period)=================================================================
+					axll::SelectSheet("ShadowCO2Prices");
+					axll::ClearActiveSheet;	
+					axll::WriteTable(
+					  IdentifierReference : Rshadow_CO2Prices(nn,ac,pnz),
 					  RowHeaderRange : "A2:B5000",
 					  ColumnHeaderRange : "C1:ZZ1",
 					  DataRange : "C2:ZZ5000",
@@ -7415,8 +7943,7 @@ Model IESA_Opt_Package {
 		Body: {
 			!Delete all identifyiers
 			cleanup AllIdentifiers;
-			
-			block  !error handling
+			!MemoryStatistics("BeginProcedure.txt",0,"",0,1,1,1,1,0);
 			
 			!Declare the start time of Run for calculating Elapsed time
 			ReferenceTime := CurrentToString("%c%y-%m-%d %H:%M:%S");
@@ -7428,6 +7955,20 @@ Model IESA_Opt_Package {
 			
 			!Assign the periods to solve
 			periods_solve := periods_selection;
+			
+			!Assign a weight to each period
+			period_weightUSE(pss) := period_weightSTAIR(pss);
+			!MemoryStatistics("BeforeSolve.txt",0,"",0,1,1,1,1,0);
+			
+			!First remove all the solversessions that currently might be active
+			while card(IndexSolverSessions) do
+				gmp::Instance::DeleteSolverSession(first(IndexSolverSessions)) ;
+			endwhile ;
+			
+			!Now remove any of the GMPs that might still be present
+			while card(IndexGeneratedMathematicalPrograms) do
+				gmp::Instance::Delete(first(IndexGeneratedMathematicalPrograms)) ;
+			endwhile ;
 			
 			!Assign a transitional value
 			transition_selection := 'Simultaneous';
@@ -7458,24 +7999,34 @@ Model IESA_Opt_Package {
 			StatusMessage("ST... Generating the transition GMP for periods: " + periods_solve);
 			! Create a solver session for GenMathProgram, which will create an element in the set AllSolverSessions, and assign the newly created element to the element parameter session.
 			GMP_planning := GMP::Instance::Generate(LeastCostPlanning);
+			for IndexGeneratedMathematicalPrograms do
+				MemoryUseMPs(IndexGeneratedMathematicalPrograms) := GMP::Instance::GetMemoryUsed(IndexGeneratedMathematicalPrograms);
+				endfor;
+			!MemoryStatistics("GeneratingGMP.txt",0,"",0,1,1,1,1,0);
 			if not GMP_planning then raise warning "Could not generate the GMP!"; AIMMSWav(Failed); return; endif;
 			
 			MathProgramParameters('Generation Time',run_numberState) := round(CurrentToMoment([minute],ReferenceTime_Generation),1);
 			
 			StatusMessage("ST... Presolving the transition GMP for periods: " + periods_solve );
 			! Create a linear presolved GMP
-			presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+periods_solve);
-			if not presGMP_planning then raise warning "Could not presolve the GMP!"; endif;
+			!presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+periods_solve);
+			!MemoryStatistics("PreSolve.txt",0,"",0,1,1,1,1,0);
+			!if not presGMP_planning then raise warning "Could not presolve the GMP!"; endif;
 			
 			!Set solver
-			GMP::Instance::SetSolver(presGMP_planning,SolverChoiceTransition);
+			!GMP::Instance::SetSolver(presGMP_planning,SolverChoiceTransition);
+			GMP::Instance::SetSolver(GMP_planning,SolverChoiceTransition);
 			
 			StatusMessage("ST... Solving the transition GMP for periods: " + periods_solve );
 			! Solve the presolved GMP
-			GMP::Instance::Solve(presGMP_planning ) ;
+			!GMP::Instance::Solve(presGMP_planning ) ;
+			! Solve the GMP
+			GMP::Instance::Solve(GMP_planning ) ;
+			!MemoryStatistics("Solve.txt",0,"",0,1,1,1,1,0);
 			
 			! Get Progress window parameters for reporting purposes
-			GMP_details(run_numberState,presGMP_planning,ReferenceTime);
+			!GMP_details(run_numberState,presGMP_planning,ReferenceTime);
+			GMP_details(run_numberState,GMP_planning,ReferenceTime);
 			
 			StatusMessage("ST... Solving the transition GMP is Finished!");
 			!============================================================= End of the Solve procedure =============================================================
@@ -7505,20 +8056,23 @@ Model IESA_Opt_Package {
 			StechStock(t,pss):=techStock(t,pss);
 			Ptotal_costs:=totalCosts_planning;
 			
-			if GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Optimal' then
+			!if GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Optimal' then
+			if GMP::Solution::GetProgramStatus(GMP_planning,1) = 'Optimal' then
 				!Extract the prices
 				!First extract the shadow prices for all the periods, then divide for the years of solution (where the weight is different than zero)
+				!corrected by Kira to multiply by social discount factor instead of divide
 				yearly_prices(as,p):=balance_activities(as,p).ShadowPrice;
-				yearly_prices(as,pss):=yearly_prices(as,pss)/social_discount_factor(pss);
+				yearly_prices(as,pss):=yearly_prices(as,pss)*social_discount_factor(pss);
 				CO2_prices(ac,pss):= yearly_prices(ac,pss);
 				Pyearly_prices(as,pss) := yearly_prices(as,pss); 
 				PCO2_prices(ac,pss) := CO2_prices(ac,pss);
 				CO2_price_single(n,p) := emission_target(n,p).ShadowPrice;
-				CO2_price_single(n,pss) := CO2_price_single(n,pss)/social_discount_factor(pss);
+				CO2_price_single(n,pss) := CO2_price_single(n,pss)*social_discount_factor(pss);
+				!Save intrayear prices
 				hourly_prices(h,ah,p):=balance_activitiesHourly(h,ah,p).ShadowPrice;
-				hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)/social_discount_factor(pss);
+				hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)*social_discount_factor(pss);
 				daily_prices(d,ad,p):=balance_activitiesDaily(d,ad,p).ShadowPrice;
-				daily_prices(d,ad,pss):=daily_prices(d,ad,pss)/social_discount_factor(pss);
+				daily_prices(d,ad,pss):=daily_prices(d,ad,pss)*social_discount_factor(pss);
 			
 				!Assign the emission controller as 1
 				negEmissions_controller := 1;
@@ -7560,20 +8114,22 @@ Model IESA_Opt_Package {
 			
 				StatusMessage("Solve transition is successfully finished!" );
 			
-			elseif GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Intermediate non-optimal' then
+			!elseif GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Intermediate non-optimal' then
+			elseif GMP::Solution::GetProgramStatus(GMP_planning,1) = 'Intermediate non-optimal' then
 				!Extract the prices
 				!First extract the shadow prices for all the periods, then divide for the years of solution (where the weight is different than zero)
 				yearly_prices(as,p):=balance_activities(as,p).ShadowPrice;
-				yearly_prices(as,pss):=yearly_prices(as,pss)/social_discount_factor(pss);
+				yearly_prices(as,pss):=yearly_prices(as,pss)*social_discount_factor(pss);
 				CO2_prices(ac,pss):= yearly_prices(ac,pss);
 				Pyearly_prices(as,pss) := yearly_prices(as,pss); 
 				PCO2_prices(ac,pss) := CO2_prices(ac,pss);
 				CO2_price_single(n,p) := emission_target(n,p).ShadowPrice;
-				CO2_price_single(n,pss) := CO2_price_single(n,pss)/social_discount_factor(pss);
+				CO2_price_single(n,pss) := CO2_price_single(n,pss)*social_discount_factor(pss);
+				!Save intrayear prices
 				hourly_prices(h,ah,p):=balance_activitiesHourly(h,ah,p).ShadowPrice;
-				hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)/social_discount_factor(pss);
+				hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)*social_discount_factor(pss);
 				daily_prices(d,ad,p):=balance_activitiesDaily(d,ad,p).ShadowPrice;
-				daily_prices(d,ad,pss):=daily_prices(d,ad,pss)/social_discount_factor(pss);
+				daily_prices(d,ad,pss):=daily_prices(d,ad,pss)*social_discount_factor(pss);
 			
 				!Assign the emission controller as 1
 				negEmissions_controller := 1;
@@ -7621,16 +8177,6 @@ Model IESA_Opt_Package {
 				AIMMSWav(Failed);
 				StatusMessage("Error or no solution" );
 			endif;
-			
-			onerror err do
-			
-			if (errh::Severity( err ) = 'warning') then 
-				errh::MarkAsHandled(err , 1) ;
-			else 
-				DialogError("Error in the SolveTransition procedure", "Solve failed!");
-			endif;
-			
-			endblock;
 		}
 	}
 	Procedure SolveTransition_IYP {
@@ -7687,7 +8233,7 @@ Model IESA_Opt_Package {
 			
 			StatusMessage("T+IYP... Presolving the transition GMP for periods: " + periods_solve );
 			! Create a linear presolved GMP
-			presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+periods_solve);
+			presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+SetAsString(periods_solve));
 			if not presGMP_planning then raise warning "Could not presolve the GMP!"; endif;
 			
 			!Set solver
@@ -7731,13 +8277,14 @@ Model IESA_Opt_Package {
 			if GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Optimal' then
 				!Extract the prices
 				!First extract the shadow prices for all the periods, then divide for the years of solution (where the weight is different than zero)
+				!corrected by Kira to multiply instead of divide
 				yearly_prices(as,p):=balance_activities(as,p).ShadowPrice;
-				yearly_prices(as,pss):=yearly_prices(as,pss)/period_weightUSE(pss);
+				yearly_prices(as,pss):=yearly_prices(as,pss)*social_discount_factor(pss);
 				CO2_prices(ac,pss):= yearly_prices(ac,pss);
 				Pyearly_prices(as,pss) := yearly_prices(as,pss); 
 				PCO2_prices(ac,pss) := CO2_prices(ac,pss);
 				CO2_price_single(n,p) := emission_target(n,p).ShadowPrice;
-				CO2_price_single(n,pss) := CO2_price_single(n,pss)/period_weightUSE(pss);
+				CO2_price_single(n,pss) := CO2_price_single(n,pss)*social_discount_factor(pss);
 			
 				!Assign the emission controller as 1
 				negEmissions_controller := 1;
@@ -7878,7 +8425,7 @@ Model IESA_Opt_Package {
 						GMP::Solution::RetrieveFromSolverSession(AY_SolverSession(ipss), 1);
 						if pres_AY_GMP(ipss) then
 							if (GMP::Solution::GetProgramStatus(pres_AY_GMP(ipss),1) <> 'Optimal') then
-								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + periods_selection;
+								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + SetAsString(periods_selection);
 								! Get Progress window parameters for reporting purposes
 								GMP_details(run_numberState,pres_AY_GMP(ipss),ReferenceTime_IYP);
 								periods_selection := periods_selection - ipss;
@@ -7892,7 +8439,7 @@ Model IESA_Opt_Package {
 							run_numberState:=run_numberState+1;
 						elseif AY_GMP(ipss) then
 							if (GMP::Solution::GetProgramStatus(AY_GMP(ipss),1) <> 'Optimal') then
-								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + periods_selection;
+								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + SetAsString(periods_selection);
 								! Get Progress window parameters for reporting purposes
 								GMP_details(run_numberState,AY_GMP(ipss),ReferenceTime_IYP);
 								periods_selection := periods_selection - ipss;
@@ -8051,7 +8598,7 @@ Model IESA_Opt_Package {
 			
 				StatusMessage(BS_counter + "/" + BS_length + " Presolving the transition GMP for periods: " + periods_solve + ' | ' + ifs);
 				! Create a linear presolved GMP
-				presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,BS_counter+"/"+BS_length+"_BatchSolve"+periods_solve);
+				presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,BS_counter+"/"+BS_length+"_BatchSolve"+SetAsString(periods_solve));
 				if not presGMP_planning then raise warning "Could not presolve the GMP " + FindReplaceStrings(ifs,"data\\",""); endif;
 			
 				!Set solver
@@ -8095,18 +8642,19 @@ Model IESA_Opt_Package {
 				if GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Optimal' then
 					!Extract the prices
 					!First extract the shadow prices for all the periods, then divide for the years of solution (where the weight is different than zero)
+					!corrected by Kira to multiply instead of divide
 					yearly_prices(as,p):=balance_activities(as,p).ShadowPrice;
-					yearly_prices(as,pss):=yearly_prices(as,pss)/social_discount_factor(pss);
+					yearly_prices(as,pss):=yearly_prices(as,pss)*social_discount_factor(pss);
 					CO2_prices(ac,pss):= yearly_prices(ac,pss);
 					Pyearly_prices(as,pss) := yearly_prices(as,pss); 
 					PCO2_prices(ac,pss) := CO2_prices(ac,pss);
 					CO2_price_single(n,p) := emission_target(n,p).ShadowPrice;
-					CO2_price_single(n,pss) := CO2_price_single(n,pss)/social_discount_factor(pss);
+					CO2_price_single(n,pss) := CO2_price_single(n,pss)*social_discount_factor(pss);
 					!Save intrayear prices
 					hourly_prices(h,ah,p):=balance_activitiesHourly(h,ah,p).ShadowPrice;
-					hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)/social_discount_factor(pss);
+					hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)*social_discount_factor(pss);
 					daily_prices(d,ad,p):=balance_activitiesDaily(d,ad,p).ShadowPrice;
-					daily_prices(d,ad,pss):=daily_prices(d,ad,pss)/social_discount_factor(pss);
+					daily_prices(d,ad,pss):=daily_prices(d,ad,pss)*social_discount_factor(pss);
 			
 					!Assign the emission controller as 1
 					negEmissions_controller := 1;
@@ -8305,7 +8853,7 @@ Model IESA_Opt_Package {
 						GMP::Solution::RetrieveFromSolverSession(AY_SolverSession(ipss), 1);
 						if pres_AY_GMP(ipss) then
 							if (GMP::Solution::GetProgramStatus(pres_AY_GMP(ipss),1) <> 'Optimal') then
-								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + periods_selection;
+								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + SetAsString(periods_selection);
 								! Get Progress window parameters for reporting purposes
 								GMP_details(run_numberState,pres_AY_GMP(ipss),ReferenceTime_IYP);
 								periods_selection := periods_selection - ipss;
@@ -8319,7 +8867,7 @@ Model IESA_Opt_Package {
 							run_numberState:=run_numberState+1;
 						elseif AY_GMP(ipss) then
 							if (GMP::Solution::GetProgramStatus(AY_GMP(ipss),1) <> 'Optimal') then
-								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + periods_selection;
+								raise warning " ===== Could not find Optimal solution for GMP of period " + ipss +" of " + SetAsString(periods_selection);
 								! Get Progress window parameters for reporting purposes
 								GMP_details(run_numberState,AY_GMP(ipss),ReferenceTime_IYP);
 								periods_selection := periods_selection - ipss;
@@ -8437,6 +8985,16 @@ Model IESA_Opt_Package {
 			!
 			!IntraYearPrices;
 			!
+		}
+	}
+	Procedure ReadfromText {
+		Body: {
+			!read from file "IESAOpt.ams";
+		}
+	}
+	Procedure WritetoText {
+		Body: {
+			!write to file "IESAOpt4.3.txt" in replace mode !!and now there are other changes;
 		}
 	}
 }
