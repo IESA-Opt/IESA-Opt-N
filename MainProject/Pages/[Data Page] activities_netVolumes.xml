@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2023-01-23 14:14:21">
+<Page Version="4000" TimeStamp="2022-11-17 10:48:10">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] activity_balancesRef"</Title>
+	<Title>"[Data Page] activities_netVolumes"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>1096C878-891E-402A-A072-5730D0A9A0F5</ObjectUUID>
+		<ObjectUUID>84B8DCC2-D44C-43EC-B22A-D277A35459FD</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">activity_balancesRef( tb, ao )</Identifier>
+				<Identifier ID="4110">activities_netVolumes( as, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,9 +142,9 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>activity_balancesRef</Symbol>
-			<Symbol>ao</Symbol>
-			<Symbol>tb</Symbol>
+			<Symbol>activities_netVolumes</Symbol>
+			<Symbol>p</Symbol>
+			<Symbol>as</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>
