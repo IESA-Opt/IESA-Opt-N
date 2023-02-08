@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2021-10-19 19:47:44">
+<Page Version="4000" TimeStamp="2022-02-14 13:14:28">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] decomposition_resLoad"</Title>
+	<Title>"[Data Page] CHP_output"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>9C074795-86E4-4AC8-A63D-04EB1DA5206D</ObjectUUID>
+		<ObjectUUID>5496F544-B6CD-438D-BFA5-202C01F38972</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">decomposition_resLoad( nn, h, torlf, p )</Identifier>
+				<Identifier ID="4110">CHP_output( tk, ae, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,11 +142,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>decomposition_resLoad</Symbol>
-			<Symbol>h</Symbol>
 			<Symbol>p</Symbol>
-			<Symbol>nn</Symbol>
-			<Symbol>torlf</Symbol>
+			<Symbol>ae</Symbol>
+			<Symbol>tk</Symbol>
+			<Symbol>CHP_output</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>
