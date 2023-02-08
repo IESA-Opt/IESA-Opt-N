@@ -986,6 +986,33 @@ Model IESA_Opt_Package {
 					endif
 				}
 			}
+			Constraint limit_eco_decom {
+				IndexDomain: (t,ps);
+				Definition: {
+					!limits economic decommissioning for certain technologies in certain periods
+					
+					eco_decommisioning(
+					t|RegexSearch(tech_name(t)," GFE ") or         !banning economic decommisioning for GFE buildings
+					RegexSearch(tech_name(t)," DC ") or           !banning economic decommisioning for DC buildings
+					RegexSearch(tech_name(t)," B ")  or           !banning economic decommisioning for B buildings
+					RegexSearch(tech_name(t)," A ")  or           !banning economic decommisioning for A buildings
+					RegexSearch(tech_name(t)," A+ ")        !banning economic decommisioning for A+ buildings
+					,ps) = 0
+				}
+			}
+			Constraint limit_new_invest {
+				IndexDomain: (t,ps);
+				Definition: {
+					!limits new investments in certain technologies in certain periods
+					
+					cap_investments(
+					t|RegexSearch(tech_name(t)," GFE ") or         !banning new investments for GFE buildings
+					RegexSearch(tech_name(t)," DC ") or           !banning new investments for DC buildings
+					RegexSearch(tech_name(t)," B ")               !banning new investments for B buildings
+					,ps | ps <> 2020                        !banning new investments for all periods except 2020
+					) = 0
+				}
+			}
 		}
 		DeclarationSection Hourly_description {
 			Set process_type {
@@ -2008,23 +2035,24 @@ Model IESA_Opt_Package {
 				SubsetOf: AllConstraints;
 				Definition: {
 					data 
-					    { balance_activities      , balance_activitiesFix   , capacity_technologies   , emission_target         ,
-					      emission_targetCum      , storageCO2_cumulative   , decomStock              , techStock               ,
-					      actStock_constraints    , minStock_constraints    , maxStock_constraints    , actInv_constraints      ,
-					      techInv_constraints     , retrofit_constraint     , decom_constraint        , balance_activitiesHourly,
-					      balance_yearlyhourly    , capacity_techHourly     , rampingUP_techHourly    , rampingDW_techHourly    ,
-					      deltaB_S                , balance_activitiesDaily , balance_yearlyDaily     , capacity_techDaily      ,
-					      balanceY_dB             , capacityUP_dB           , capacityDW_dB           , cummulativeS_dB         ,
-					      balanceH_deltaHchp      , balanceD_deltaHchp      , balanceW_deltaHchp      , capacityUP_deltaUchp    ,
-					      capacityDW_deltaUchp    , capacityUP_deltaPchp    , capacityDW_deltaPchp    , deltaQ_S                ,
-					      deltaQd_UP              , deltaQd_DW              , deltaW_S                , balanceH_deltaS         ,
-					      balanceW_deltaS         , capacity_deltaS         , sufficiency_deltaS      , balanceQ_deltaQtfe      ,
-					      balanceD_deltaQd        , balanceR_deltaQd        , balanceW_deltaQd        , balanceM_deltaQd        ,
-					      balanceS_deltaQd        , balanceB_deltaQd        , balanceY_deltaQd        , capacityUP_dQtfe        ,
-					      capacityUP_dQtfs        , capacityUP_dQtfb        , capacityUP_dQtfv        , capacityUP_dW           ,
-					      capacityDW_dQtfe        , capacityDW_dQtfs        , capacityDW_dQtfb        , capacityDW_dQtfvc       ,
-					      capacityDW_dQtfvg       , capacityDW_dW           , nonPos_Shed             , infraVol_H              ,
-					      infraVol_D              , totalCosts_planning     }
+					    { balance_activities       , balance_activitiesFix    , balance_activitiesmatconv, capacity_technologies    ,
+					      emission_target          , emission_targetCum       , storageCO2_cumulative    , decomStock               ,
+					      techStock                , actStock_constraints     , minStock_constraints     , maxStock_constraints     ,
+					      actInv_constraints       , techInv_constraints      , retrofit_constraint      , decom_constraint         ,
+					      balance_activitiesHourly , balance_yearlyhourly     , capacity_techHourly      , rampingUP_techHourly     ,
+					      rampingDW_techHourly     , deltaB_S                 , balance_activitiesDaily  , balance_yearlyDaily      ,
+					      capacity_techDaily       , balanceY_dB              , capacityUP_dB            , capacityDW_dB            ,
+					      cummulativeS_dB          , balanceH_deltaHchp       , balanceD_deltaHchp       , balanceW_deltaHchp       ,
+					      capacityUP_deltaUchp     , capacityDW_deltaUchp     , capacityUP_deltaPchp     , capacityDW_deltaPchp     ,
+					      deltaQ_S                 , deltaQd_UP               , deltaQd_DW               , deltaW_S                 ,
+					      balanceH_deltaS          , balanceW_deltaS          , capacity_deltaS          , sufficiency_deltaS       ,
+					      balanceQ_deltaQtfe       , balanceD_deltaQd         , balanceR_deltaQd         , balanceW_deltaQd         ,
+					      balanceM_deltaQd         , balanceS_deltaQd         , balanceB_deltaQd         , balanceY_deltaQd         ,
+					      capacityUP_dQtfe         , capacityUP_dQtfs         , capacityUP_dQtfb         , capacityUP_dQtfv         ,
+					      capacityUP_dW            , capacityDW_dQtfe         , capacityDW_dQtfs         , capacityDW_dQtfb         ,
+					      capacityDW_dQtfvc        , capacityDW_dQtfvg        , capacityDW_dW            , nonPos_Shed              ,
+					      infraVol_H               , infraVol_D               , totalCosts_planning      , limit_eco_decom          ,
+					      limit_new_invest         }
 				}
 			}
 			Set activeConstraints_operation {
