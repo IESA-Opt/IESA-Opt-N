@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2022-11-17 10:48:10">
+<Page Version="4000" TimeStamp="2022-07-14 09:33:39">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] finalEnergy_sec"</Title>
+	<Title>"[Data Page] interconnected_pricesOrig"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>528295F7-2AE9-4EC0-9D70-32BF7102AF2E</ObjectUUID>
+		<ObjectUUID>8C63479F-2604-4115-B9AB-D99B5EAF030A</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">finalEnergy_sec( n, z, el, p )</Identifier>
+				<Identifier ID="4110">interconnected_pricesOrig( ho, ain, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,11 +142,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>finalEnergy_sec</Symbol>
+			<Symbol>interconnected_pricesOrig</Symbol>
+			<Symbol>ho</Symbol>
 			<Symbol>p</Symbol>
-			<Symbol>z</Symbol>
-			<Symbol>el</Symbol>
-			<Symbol>n</Symbol>
+			<Symbol>ain</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>
