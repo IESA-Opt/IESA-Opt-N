@@ -165,12 +165,12 @@
 		<Page Name="[Data Page] SectoralCosts_cascade" PageGUID="CA769073-027D-477D-8A8F-D92DF0A3A651" />
 		<Page Name="[Data Page] Ptech_useHourlyNet" PageGUID="2304E096-89CF-4325-9D75-A26A21671534" />
 		<Page Name="[Data Page] final_activities" PageGUID="63DCCF14-54F1-4534-99B0-D12720EC86B7" />
-		<Page Name="[Data Page] exportCosts" PageGUID="5F54DF20-ED03-4CC0-97A0-B39911532A30" />
-		<Page Name="[Data Page] importCosts" PageGUID="A13B61DE-D7B2-49D6-9B25-0B71B10DEFB4" />
+		<Page Name="[Data Page] exportCosts" PageGUID="5F54DF20-ED03-4CC0-97A0-B39911532A30" Marked="true" />
+		<Page Name="[Data Page] importCosts" PageGUID="A13B61DE-D7B2-49D6-9B25-0B71B10DEFB4" Marked="true" />
 		<Page Name="[Data Page] exportCosts_tech" PageGUID="EC95B05C-DDCC-454F-8A92-ED9017D4D259" />
 		<Page Name="[Data Page] EnergyShare_tech" PageGUID="0E034DB1-9924-4976-BE8C-6998632A992C" />
-		<Page Name="[Data Page] exportCosts_act" PageGUID="1951BA93-65C7-4928-96B7-D11C7630A2C3" />
-		<Page Name="[Data Page] importCosts_tech" PageGUID="372FE7CD-C677-4687-8D7E-CACAB7D09350" />
+		<Page Name="[Data Page] exportCosts_act" PageGUID="1951BA93-65C7-4928-96B7-D11C7630A2C3" Marked="true" />
+		<Page Name="[Data Page] importCosts_tech" PageGUID="372FE7CD-C677-4687-8D7E-CACAB7D09350" Marked="true" />
 		<Page Name="[Data Page] SystemCosts_techBal" PageGUID="E5206521-52B2-4733-9C34-3B90AE37C4B2" />
 		<Page Name="[Data Page] SystemCosts_n" PageGUID="CB1FFCD0-3B00-4D87-AD5D-2E6276A27724" />
 		<Page Name="[Data Page] SystemCosts_sec_tot" PageGUID="3F7C84F9-97AC-43C8-BD13-D1044A4BB299" />
@@ -202,10 +202,8 @@
 		<Page Name="[Data Page] LCOP_Esec" PageGUID="0CEC92E8-B661-4910-BEEC-CE621643D922" />
 		<Page Name="[Data Page] LCOP_secE" PageGUID="C2BBAC78-99E3-4610-98E8-70ACD7664E7E" />
 		<Page Name="[Data Page] LCOP_act" PageGUID="86243917-99FD-4386-AF2A-FF853877F7E6" />
-		<Page Name="[Data Page] CHP_output" PageGUID="1228E019-7D9C-4EB4-B04A-51ABAE6CCC5D" />
-		<Page Name="[Data Page] interconnected_prices" PageGUID="BB9C7DAD-56CC-4A04-AC22-F69976CA4090" />
-		<Page Name="[Data Page] vom_hourly" PageGUID="DD59072B-3D8C-420E-BC4E-C3049EFA502A" />
-		<Page Name="[Data Page] interconnected_pricesOrig" PageGUID="D7E3EF0C-96E1-43DF-BF5D-547BDFEC8247" />
-		<Page Name="[Data Page] activities_netVolumes" PageGUID="725F2943-5FDD-4782-B48A-D0252470D5AD" />
+		<Page Name="[Data Page] flexibility_volumesAct" PageGUID="BC1D9D21-0398-451E-947D-A96AD918EF4C" />
+		<Page Name="[Data Page] capitalCosts_bkdw" PageGUID="3D7631E3-5647-4AB9-814D-B64B758A0FEF" />
+		<Page Name="[Data Page] test" PageGUID="BE550358-FDEC-4B83-AD14-77E1A33BCC0F" Marked="true" />
 	</Page>
 </PageManager>
