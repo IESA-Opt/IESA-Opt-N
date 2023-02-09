@@ -881,6 +881,14 @@ Model IESA_Opt_Package {
 			Parameter techStock_max {
 				IndexDomain: (t,p);
 			}
+			Parameter no_eco_decom {
+				IndexDomain: (t,p);
+				Range: binary;
+			}
+			Parameter no_new_invest {
+				IndexDomain: (t,p);
+				Range: binary;
+			}
 			Variable cap_investments {
 				IndexDomain: (t,ps);
 				Range: nonnegative;
@@ -980,38 +988,14 @@ Model IESA_Opt_Package {
 				IndexDomain: (t,ps);
 				Definition: {
 					if(transition_selection='Simultaneous') then
-						decomStock(t,ps)>=decomStock(t,ps-1)
+						decomStock(t,ps)>=decomStock(t,ps-1)*(1-no_eco_decom(t,ps))
 					else !if(transition_selection='Sequential') then
-						decomStock(t,ps)>=sum[ipss | ipss+1=ps, PdecomStock(t,ipss)]
+						decomStock(t,ps)>=sum[ipss | ipss+1=ps, PdecomStock(t,ipss)]*(1-no_eco_decom(t,ps))
 					endif
 				}
 			}
-			Constraint limit_eco_decom {
-				IndexDomain: (t,ps);
-				Definition: {
-					!limits economic decommissioning for certain technologies in certain periods
-					
-					eco_decommisioning(
-					t|RegexSearch(tech_name(t)," GFE ") or         !banning economic decommisioning for GFE buildings
-					RegexSearch(tech_name(t)," DC ") or           !banning economic decommisioning for DC buildings
-					RegexSearch(tech_name(t)," B ")  or           !banning economic decommisioning for B buildings
-					RegexSearch(tech_name(t)," A ")  or           !banning economic decommisioning for A buildings
-					RegexSearch(tech_name(t)," A+ ")        !banning economic decommisioning for A+ buildings
-					,ps) = 0
-				}
-			}
 			Constraint limit_new_invest {
-				IndexDomain: (t,ps);
-				Definition: {
-					!limits new investments in certain technologies in certain periods
-					
-					cap_investments(
-					t|RegexSearch(tech_name(t)," GFE ") or         !banning new investments for GFE buildings
-					RegexSearch(tech_name(t)," DC ") or           !banning new investments for DC buildings
-					RegexSearch(tech_name(t)," B ")               !banning new investments for B buildings
-					,ps | ps <> 2020                        !banning new investments for all periods except 2020
-					) = 0
-				}
+				Definition: sum[(t,ps)|no_new_invest(t,ps)=1,cap_investments(t,ps)]=0;
 			}
 		}
 		DeclarationSection Hourly_description {
@@ -2039,20 +2023,19 @@ Model IESA_Opt_Package {
 					      emission_target          , emission_targetCum       , storageCO2_cumulative    , decomStock               ,
 					      techStock                , actStock_constraints     , minStock_constraints     , maxStock_constraints     ,
 					      actInv_constraints       , techInv_constraints      , retrofit_constraint      , decom_constraint         ,
-					      balance_activitiesHourly , balance_yearlyhourly     , capacity_techHourly      , rampingUP_techHourly     ,
-					      rampingDW_techHourly     , deltaB_S                 , balance_activitiesDaily  , balance_yearlyDaily      ,
-					      capacity_techDaily       , balanceY_dB              , capacityUP_dB            , capacityDW_dB            ,
-					      cummulativeS_dB          , balanceH_deltaHchp       , balanceD_deltaHchp       , balanceW_deltaHchp       ,
-					      capacityUP_deltaUchp     , capacityDW_deltaUchp     , capacityUP_deltaPchp     , capacityDW_deltaPchp     ,
-					      deltaQ_S                 , deltaQd_UP               , deltaQd_DW               , deltaW_S                 ,
-					      balanceH_deltaS          , balanceW_deltaS          , capacity_deltaS          , sufficiency_deltaS       ,
-					      balanceQ_deltaQtfe       , balanceD_deltaQd         , balanceR_deltaQd         , balanceW_deltaQd         ,
-					      balanceM_deltaQd         , balanceS_deltaQd         , balanceB_deltaQd         , balanceY_deltaQd         ,
-					      capacityUP_dQtfe         , capacityUP_dQtfs         , capacityUP_dQtfb         , capacityUP_dQtfv         ,
-					      capacityUP_dW            , capacityDW_dQtfe         , capacityDW_dQtfs         , capacityDW_dQtfb         ,
-					      capacityDW_dQtfvc        , capacityDW_dQtfvg        , capacityDW_dW            , nonPos_Shed              ,
-					      infraVol_H               , infraVol_D               , totalCosts_planning      , limit_eco_decom          ,
-					      limit_new_invest         }
+					      limit_new_invest         , balance_activitiesHourly , balance_yearlyhourly     , capacity_techHourly      ,
+					      rampingUP_techHourly     , rampingDW_techHourly     , deltaB_S                 , balance_activitiesDaily  ,
+					      balance_yearlyDaily      , capacity_techDaily       , balanceY_dB              , capacityUP_dB            ,
+					      capacityDW_dB            , cummulativeS_dB          , balanceH_deltaHchp       , balanceD_deltaHchp       ,
+					      balanceW_deltaHchp       , capacityUP_deltaUchp     , capacityDW_deltaUchp     , capacityUP_deltaPchp     ,
+					      capacityDW_deltaPchp     , deltaQ_S                 , deltaQd_UP               , deltaQd_DW               ,
+					      deltaW_S                 , balanceH_deltaS          , balanceW_deltaS          , capacity_deltaS          ,
+					      sufficiency_deltaS       , balanceQ_deltaQtfe       , balanceD_deltaQd         , balanceR_deltaQd         ,
+					      balanceW_deltaQd         , balanceM_deltaQd         , balanceS_deltaQd         , balanceB_deltaQd         ,
+					      balanceY_deltaQd         , capacityUP_dQtfe         , capacityUP_dQtfs         , capacityUP_dQtfb         ,
+					      capacityUP_dQtfv         , capacityUP_dW            , capacityDW_dQtfe         , capacityDW_dQtfs         ,
+					      capacityDW_dQtfb         , capacityDW_dQtfvc        , capacityDW_dQtfvg        , capacityDW_dW            ,
+					      nonPos_Shed              , infraVol_H               , infraVol_D               , totalCosts_planning      }
 				}
 			}
 			Set activeConstraints_operation {
@@ -4962,11 +4945,11 @@ Model IESA_Opt_Package {
 			}
 			ElementParameter SolverChoiceTransition {
 				Range: AllSolvers;
-				InitialData: 'GUROBI 9.5';
+				InitialData: 'CPLEX 22.1';
 			}
 			ElementParameter SolverChoiceIYP {
 				Range: AllSolvers;
-				InitialData: 'CPLEX 20.1';
+				InitialData: 'CPLEX 22.1';
 			}
 			Parameter CPUCores {
 				Range: {
@@ -5731,6 +5714,20 @@ Model IESA_Opt_Package {
 										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
 										       ColumnHeaderRange      	:  "CB5:CH5",
 										       DataRange           	:  FormatString("CB7:CH%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  no_eco_decom,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "CX5:DD5",
+										       DataRange           	:  FormatString("CX7:DD%i",axll::LastUsedRowNumber),
+										       MergeWithExistingData	:  0);
+					
+										axll::ReadTable(
+										       IdentifierReference 	:  no_new_invest,
+										       RowHeaderRange      	:  FormatString("A7:A%i",axll::LastUsedRowNumber),
+										       ColumnHeaderRange      	:  "CQ5:CW5",
+										       DataRange           	:  FormatString("CQ7:CW%i",axll::LastUsedRowNumber),
 										       MergeWithExistingData	:  0);
 					
 										!Select the workbook sheet
