@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2022-11-17 10:48:10">
+<Page Version="4000" TimeStamp="2021-10-19 19:47:44">
 	<PageEditSize Type="Specified">
 		<Size Width="1200" Height="800" />
 	</PageEditSize>
@@ -33,7 +33,7 @@
 	</PageObject>
 	<PageObject Type="Text">
 		<Location top="96" left="24" bottom="180" right="960" />
-		<StaticText>	Welcome to the IESA-Opt model interface. Here you can define the settings under which you want to obtain a cost optimal decarbonization transtition for the integrated energy system of the Netherlands. Let's start by selecting which action you want to perform:</StaticText>
+		<StaticText>	Welcome to the IESA-Opt model interface. Here you can define the settings under which you want to obtain a cost optimal decarbonization transtition for the integrated energy system of the Netherlands. Let's star by selecting which action you want to perform:</StaticText>
 		<Font GUID="FC37E4F7-5732-42BD-B488-C708466030F3" Name="Content" />
 		<TextColor RGB="#57606f" />
 	</PageObject>

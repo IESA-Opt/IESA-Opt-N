@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2023-01-23 14:14:21">
+<Page Version="4000" TimeStamp="2022-02-10 10:19:56">
 	<PageEditSize Type="Specified">
 		<Size Width="1200" Height="800" />
 	</PageEditSize>
@@ -27,20 +27,20 @@
 		<TextColor RGB="#57606f" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="186" left="72" bottom="210" right="258" />
+		<Location top="216" left="72" bottom="240" right="258" />
 		<StaticText>¤Scenario database:</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="222" left="72" bottom="246" right="258" />
+		<Location top="252" left="72" bottom="276" right="258" />
 		<StaticText>¤Years selection:</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>CheckBoxes</SelectionType>
-		<Location top="216" left="246" bottom="246" right="960" />
+		<Location top="246" left="246" bottom="276" right="960" />
 		<TabOrder>6</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
@@ -52,7 +52,7 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="180" left="840" bottom="209" right="960" />
+		<Location top="210" left="840" bottom="239" right="960" />
 		<Hidden>ReadButton_Hide</Hidden>
 		<TabOrder>3</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
@@ -76,14 +76,14 @@
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="260" left="72" bottom="284" right="216" />
+		<Location top="290" left="72" bottom="314" right="216" />
 		<StaticText>¤Output name:</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
-		<Location top="254" left="246" bottom="288" right="474" />
+		<Location top="284" left="246" bottom="318" right="474" />
 		<TabOrder>8</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
@@ -94,9 +94,9 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Scalar">
-		<Location top="254" left="480" bottom="288" right="960" />
+		<Location top="284" left="480" bottom="318" right="960" />
 		<Hidden>OutputName_Hide</Hidden>
-		<TabOrder>13</TabOrder>
+		<TabOrder>14</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
@@ -108,8 +108,8 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="534" left="240" bottom="582" right="390" />
-		<TabOrder>15</TabOrder>
+		<Location top="516" left="240" bottom="564" right="390" />
+		<TabOrder>16</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
 		<ButtonType>Text</ButtonType>
 		<Title>"Back"</Title>
@@ -122,8 +122,8 @@
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>DropDownList</SelectionType>
-		<Location top="183" left="246" bottom="207" right="834" />
-		<TabOrder>16</TabOrder>
+		<Location top="213" left="246" bottom="237" right="834" />
+		<TabOrder>17</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="None" />
@@ -133,14 +133,14 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="150" left="72" bottom="175" right="294" />
+		<Location top="180" left="72" bottom="205" right="294" />
 		<Hidden>Ref2020_Hide</Hidden>
 		<StaticText>¤IncludeREF 2020:</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="144" left="372" bottom="173" right="492" />
+		<Location top="174" left="372" bottom="203" right="492" />
 		<Hidden>Ref2020No_Hide</Hidden>
 		<TabOrder>4</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
@@ -168,7 +168,7 @@
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="144" left="246" bottom="173" right="366" />
+		<Location top="174" left="246" bottom="203" right="366" />
 		<Hidden>Ref2020_Hide</Hidden>
 		<TabOrder>5</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
@@ -205,15 +205,15 @@
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="297" left="72" bottom="321" right="216" />
+		<Location top="327" left="72" bottom="351" right="216" />
 		<StaticText>¤Hourly reports:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
-		<Location top="292" left="246" bottom="324" right="378" />
-		<TabOrder>12</TabOrder>
+		<Location top="322" left="246" bottom="354" right="378" />
+		<TabOrder>13</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
@@ -223,15 +223,15 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="298" left="438" bottom="325" right="582" />
+		<Location top="328" left="438" bottom="355" right="582" />
 		<StaticText>¤Hours in a day:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
-		<Location top="294" left="588" bottom="326" right="960" />
-		<TabOrder>11</TabOrder>
+		<Location top="324" left="588" bottom="356" right="960" />
+		<TabOrder>12</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
@@ -241,14 +241,14 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="396" left="438" bottom="420" right="582" />
+		<Location top="426" left="438" bottom="450" right="582" />
 		<StaticText>¤Energy Prices:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
-		<Location top="390" left="588" bottom="420" right="960" />
+		<Location top="420" left="588" bottom="450" right="960" />
 		<TabOrder>7</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
@@ -259,15 +259,15 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="420" left="72" bottom="450" right="246" />
+		<Location top="444" left="72" bottom="468" right="240" />
 		<StaticText>¤Select Solver Transition:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>DropDownList</SelectionType>
-		<Location top="420" left="246" bottom="444" right="378" />
-		<TabOrder>18</TabOrder>
+		<Location top="444" left="246" bottom="474" right="378" />
+		<TabOrder>19</TabOrder>
 		<Font GUID="F93179F1-B38A-4175-A80A-C5F1495320AF" Name="Content tiny" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="None" />
@@ -277,7 +277,7 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="534" left="690" bottom="582" right="960" />
+		<Location top="516" left="690" bottom="564" right="960" />
 		<Hidden>RunButton_Hide</Hidden>
 		<TabOrder>1</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
@@ -300,7 +300,7 @@
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="474" left="690" bottom="522" right="960" />
+		<Location top="456" left="690" bottom="504" right="960" />
 		<Hidden>RunButton_Hide</Hidden>
 		<TabOrder>2</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
@@ -323,27 +323,27 @@
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="486" left="534" bottom="510" right="678" />
+		<Location top="468" left="534" bottom="492" right="678" />
 		<StaticText>¤Solve method:</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="486" left="744" bottom="516" right="924" />
+		<Location top="468" left="744" bottom="498" right="924" />
 		<StaticText>First upload the data!</StaticText>
 		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="456" left="72" bottom="480" right="216" />
+		<Location top="480" left="72" bottom="504" right="216" />
 		<StaticText>¤Select Solver IYP:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>DropDownList</SelectionType>
-		<Location top="456" left="246" bottom="522" right="378" />
-		<TabOrder>17</TabOrder>
+		<Location top="474" left="246" bottom="504" right="378" />
+		<TabOrder>18</TabOrder>
 		<Font GUID="F93179F1-B38A-4175-A80A-C5F1495320AF" Name="Content tiny" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="None" />
@@ -353,14 +353,14 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="344" left="438" bottom="368" right="582" />
+		<Location top="372" left="438" bottom="396" right="582" />
 		<StaticText>¤CPU Cores:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Scalar">
-		<Location top="338" left="588" bottom="368" right="636" />
-		<TabOrder>14</TabOrder>
+		<Location top="366" left="588" bottom="396" right="636" />
+		<TabOrder>15</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
@@ -372,8 +372,8 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Slider">
-		<Location top="332" left="636" bottom="362" right="966" />
-		<TabOrder>19</TabOrder>
+		<Location top="360" left="636" bottom="390" right="966" />
+		<TabOrder>20</TabOrder>
 		<Contents>
 			<Minimum_value ID="2001">0</Minimum_value>
 			<Maximum_value ID="2002">NumCPU</Maximum_value>
@@ -381,34 +381,34 @@
 		</Contents>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="368" left="648" bottom="392" right="762" />
+		<Location top="396" left="648" bottom="420" right="762" />
 		<StaticText>0 = All CPU Cores</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="368" left="942" bottom="392" right="978" />
+		<Location top="396" left="942" bottom="420" right="978" />
 		<SourceType>StringParameter</SourceType>
 		<StringParameter>StringCPU</StringParameter>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="342" left="72" bottom="366" right="216" />
+		<Location top="364" left="72" bottom="388" right="216" />
 		<StaticText>¤Crossover:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
-		<Location top="338" left="246" bottom="368" right="378" />
-		<TabOrder>10</TabOrder>
+		<Location top="360" left="246" bottom="390" right="378" />
+		<TabOrder>11</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<TextShown>ElementName</TextShown>
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
 		<ExplicitIdentifier>
-			<Identifier>crossover_enabling</Identifier>
+			<Identifier>Crossover_enabling</Identifier>
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
@@ -420,7 +420,7 @@
 	</PageObject>
 	<PageObject Type="Selection Object">
 		<SelectionType>RadioButtons</SelectionType>
-		<Location top="378" left="246" bottom="408" right="378" />
+		<Location top="396" left="246" bottom="426" right="378" />
 		<TabOrder>9</TabOrder>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<TextShown>ElementName</TextShown>
@@ -431,7 +431,7 @@
 		</ExplicitIdentifier>
 	</PageObject>
 	<PageObject Type="Text">
-		<Location top="384" left="72" bottom="408" right="216" />
+		<Location top="396" left="72" bottom="420" right="216" />
 		<StaticText>¤Scaling:</StaticText>
 		<Font GUID="4464C7B0-E4FE-4E0E-A45D-3F71F5EFBEB0" Name="Content small" />
 		<TextColor RGB="#000000" />
@@ -454,7 +454,7 @@
 			<Symbol>ScaleValue</Symbol>
 			<Symbol>Ref2020Value</Symbol>
 			<Symbol>DataReadingLocation</Symbol>
-			<Symbol>crossover_enabling</Symbol>
+			<Symbol>Crossover_enabling</Symbol>
 			<Symbol>HourlyReportValue</Symbol>
 			<Symbol>OutputFolderName</Symbol>
 			<Symbol>EnergyPricesChoice</Symbol>
