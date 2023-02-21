@@ -2629,7 +2629,7 @@ Model IESA_Opt_Package {
 					option 'CPLEX 22.1'.optimality := Optimality_tolerance;
 					option 'CPLEX 22.1'.parallel_mode := 'Opportunistic';
 				!	option 'CPLEX 22.1'.preprocessing_reduction_types := 'No primal and dual reductions';
-				!	option 'CPLEX 22.1'.presolve_pass_dual := 'Off';
+					option 'CPLEX 22.1'.presolve_pass_dual := 'Off';
 					if (crossover_enabling = 'yes') then
 						option 'CPLEX 22.1'.Solution_type := 'basic';
 						option 'CPLEX 22.1'.Barrier_crossover_algorithm := 'Automatic';
@@ -7966,9 +7966,8 @@ Model IESA_Opt_Package {
 	}
 	Procedure SolveTransition {
 		Body: {
-			!Delete all identifyiers
+			!Delete all identifiers
 			cleanup AllIdentifiers;
-			!MemoryStatistics("BeginProcedure.txt",0,"",0,1,1,1,1,0);
 			
 			!Declare the start time of Run for calculating Elapsed time
 			ReferenceTime := CurrentToString("%c%y-%m-%d %H:%M:%S");
@@ -7983,7 +7982,6 @@ Model IESA_Opt_Package {
 			
 			!Assign a weight to each period
 			period_weightUSE(pss) := period_weightSTAIR(pss);
-			!MemoryStatistics("BeforeSolve.txt",0,"",0,1,1,1,1,0);
 			
 			!First remove all the solversessions that currently might be active
 			while card(IndexSolverSessions) do
@@ -8027,15 +8025,14 @@ Model IESA_Opt_Package {
 			for IndexGeneratedMathematicalPrograms do
 				MemoryUseMPs(IndexGeneratedMathematicalPrograms) := GMP::Instance::GetMemoryUsed(IndexGeneratedMathematicalPrograms);
 				endfor;
-			!MemoryStatistics("GeneratingGMP.txt",0,"",0,1,1,1,1,0);
+			
 			if not GMP_planning then raise warning "Could not generate the GMP!"; AIMMSWav(Failed); return; endif;
 			
 			MathProgramParameters('Generation Time',run_numberState) := round(CurrentToMoment([minute],ReferenceTime_Generation),1);
 			
-			StatusMessage("ST... Presolving the transition GMP for periods: " + periods_solve );
+			!StatusMessage("ST... Presolving the transition GMP for periods: " + periods_solve );
 			! Create a linear presolved GMP
 			!presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+periods_solve);
-			!MemoryStatistics("PreSolve.txt",0,"",0,1,1,1,1,0);
 			!if not presGMP_planning then raise warning "Could not presolve the GMP!"; endif;
 			
 			!Set solver
@@ -8045,9 +8042,9 @@ Model IESA_Opt_Package {
 			StatusMessage("ST... Solving the transition GMP for periods: " + periods_solve );
 			! Solve the presolved GMP
 			!GMP::Instance::Solve(presGMP_planning ) ;
+			
 			! Solve the GMP
 			GMP::Instance::Solve(GMP_planning ) ;
-			!MemoryStatistics("Solve.txt",0,"",0,1,1,1,1,0);
 			
 			! Get Progress window parameters for reporting purposes
 			!GMP_details(run_numberState,presGMP_planning,ReferenceTime);
@@ -8093,7 +8090,7 @@ Model IESA_Opt_Package {
 				PCO2_prices(ac,pss) := CO2_prices(ac,pss);
 				CO2_price_single(n,p) := emission_target(n,p).ShadowPrice;
 				CO2_price_single(n,pss) := CO2_price_single(n,pss)*social_discount_factor(pss);
-				!Save intrayear prices
+				!Save intrayear prices (shadow prices)
 				hourly_prices(h,ah,p):=balance_activitiesHourly(h,ah,p).ShadowPrice;
 				hourly_prices(h,ah,pss):=hourly_prices(h,ah,pss)*social_discount_factor(pss);
 				daily_prices(d,ad,p):=balance_activitiesDaily(d,ad,p).ShadowPrice;
@@ -8105,7 +8102,7 @@ Model IESA_Opt_Package {
 				! Write model version
 				MathProgramParameters('Model Version',1) := project_name;
 			
-				! Creat a directory for Output files
+				! Create a directory for Output files
 				if (DirectoryExists("Output/"+OutputFolderName) = 0) then DirectoryCreate("Output/"+OutputFolderName); endif;
 			
 				!Save the data file
@@ -8206,7 +8203,7 @@ Model IESA_Opt_Package {
 	}
 	Procedure SolveTransition_IYP {
 		Body: {
-			!Delete all identifyiers
+			!Delete all identifiers
 			cleanup AllIdentifiers;
 			
 			!Declare the start time of Run for calculating Elapsed time
@@ -8222,6 +8219,16 @@ Model IESA_Opt_Package {
 			
 			!Assign a weight to each period
 			period_weightUSE(pss) := period_weightSTAIR(pss);
+			
+			!First remove all the solversessions that currently might be active
+			while card(IndexSolverSessions) do
+				gmp::Instance::DeleteSolverSession(first(IndexSolverSessions)) ;
+			endwhile ;
+			
+			!Now remove any of the GMPs that might still be present
+			while card(IndexGeneratedMathematicalPrograms) do
+				gmp::Instance::Delete(first(IndexGeneratedMathematicalPrograms)) ;
+			endwhile ;
 			
 			!Assign a transitional value
 			transition_selection := 'Simultaneous';
@@ -8252,24 +8259,33 @@ Model IESA_Opt_Package {
 			StatusMessage("T+IYP... Generating the transition GMP for periods: " + periods_solve);
 			! Create a solver session for GenMathProgram, which will create an element in the set AllSolverSessions, and assign the newly created element to the element parameter session.
 			GMP_planning := GMP::Instance::Generate(LeastCostPlanning);
+			for IndexGeneratedMathematicalPrograms do
+				MemoryUseMPs(IndexGeneratedMathematicalPrograms) := GMP::Instance::GetMemoryUsed(IndexGeneratedMathematicalPrograms);
+				endfor;
+			
 			if not GMP_planning then raise warning "Could not generate the GMP!"; AIMMSWav(Failed); return; endif;
 			
 			MathProgramParameters('Generation Time',run_numberState) := round(CurrentToMoment([minute],ReferenceTime_Generation),1);
 			
-			StatusMessage("T+IYP... Presolving the transition GMP for periods: " + periods_solve );
+			!StatusMessage("T+IYP... Presolving the transition GMP for periods: " + periods_solve );
 			! Create a linear presolved GMP
-			presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+SetAsString(periods_solve));
-			if not presGMP_planning then raise warning "Could not presolve the GMP!"; endif;
+			!presGMP_planning := GMP::Instance::CreatePresolved(GMP_planning,"Transition"+SetAsString(periods_solve));
+			!if not presGMP_planning then raise warning "Could not presolve the GMP!"; endif;
 			
 			!Set solver
-			GMP::Instance::SetSolver(presGMP_planning,SolverChoiceTransition);
+			!GMP::Instance::SetSolver(presGMP_planning,SolverChoiceTransition);
+			GMP::Instance::SetSolver(GMP_planning,SolverChoiceTransition);
 			
 			StatusMessage("T+IYP... Solving the transition GMP for periods: " + periods_solve );
 			! Solve the presolved GMP
-			GMP::Instance::Solve(presGMP_planning ) ;
+			!GMP::Instance::Solve(presGMP_planning ) ;
+			
+			! Solve the GMP
+			GMP::Instance::Solve(GMP_planning ) ;
 			
 			! Get Progress window parameters for reporting purposes
-			GMP_details(run_numberState,presGMP_planning,ReferenceTime);
+			!GMP_details(run_numberState,presGMP_planning,ReferenceTime);
+			GMP_details(run_numberState,GMP_planning,ReferenceTime);
 			
 			StatusMessage("ST... Solving the transition GMP is Finished!");
 			!============================================================= End of the Solve procedure =============================================================
@@ -8299,7 +8315,8 @@ Model IESA_Opt_Package {
 			StechStock(t,pss):=techStock(t,pss);
 			Ptotal_costs:=totalCosts_planning;
 			
-			if GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Optimal' then
+			!if GMP::Solution::GetProgramStatus(presGMP_planning,1) = 'Optimal' then
+			if GMP::Solution::GetProgramStatus(GMP_planning,1) = 'Optimal' then
 				!Extract the prices
 				!First extract the shadow prices for all the periods, then divide for the years of solution (where the weight is different than zero)
 				!corrected by Kira to multiply instead of divide
@@ -8362,7 +8379,8 @@ Model IESA_Opt_Package {
 			property balance_activitiesHourly.ShadowPrice := on;
 			
 			!Redefine weight of the year to 1
-			period_weightUSE(pss):=1;
+			!period_weightUSE(pss):=1;
+			social_discount_rate:=0;
 			
 			!First remove all the solversessions that currently might be active
 			while card(IndexSolverSessions) do
@@ -8383,8 +8401,14 @@ Model IESA_Opt_Package {
 			for (ipss in periods_selection) do
 			
 				!Assign a specific number of threads to each solver session
+				option 'GUROBI 10.0'.Thread_limit := Floor(NumCPU/card(periods_selection));
+				option 'GUROBI 9.5'.Thread_limit := Floor(NumCPU/card(periods_selection));
 				option 'GUROBI 9.1'.Thread_limit := Floor(NumCPU/card(periods_selection));
+				option 'GUROBI 9.0'.Thread_limit := Floor(NumCPU/card(periods_selection));
+				option 'GUROBI 8.1'.Thread_limit := Floor(NumCPU/card(periods_selection));
+				option 'CPLEX 12.1'.Thread_limit := Floor(NumCPU/card(periods_selection));
 				option 'CPLEX 20.1'.Thread_limit := Floor(NumCPU/card(periods_selection));
+				option 'CPLEX 22.1'.Thread_limit := Floor(NumCPU/card(periods_selection));
 			
 				periods_solve:=ipss;
 			
@@ -8393,7 +8417,7 @@ Model IESA_Opt_Package {
 			
 				StatusMessage("T+IYP... Generating GMP for period: " + ipss + " of " + periods_selection);
 			
-				!Apply the desired intra-year method
+				!Apply the desired intra-year method to generate the GMP
 				if (IntrayearValue='Pstock') then
 					!Solve LeastCostOperation
 					AY_GMP(ipss) := GMP::Instance::Generate(LeastCostOperation, "GMP_" + ipss);
@@ -8404,29 +8428,29 @@ Model IESA_Opt_Package {
 					if not AY_GMP(ipss) then raise warning "Could not generate the GMP for period "+ipss; AIMMSWav(Failed); return; endif;
 				endif;
 			
-				StatusMessage("T+IYP... Presolving GMP for period: " + ipss + " of " + periods_selection);
-				pres_AY_GMP(ipss) := GMP::Instance::CreatePresolved(AY_GMP(ipss), "pres_GMP_" + ipss);
-				if not pres_AY_GMP(ipss) then raise warning "Could not presolve the GMP for period "+ipss; AIMMSWav(Failed); return; endif;
-				GMP::Instance::SetSolver(pres_AY_GMP(ipss),SolverChoiceIYP);
+				!StatusMessage("T+IYP... Presolving GMP for period: " + ipss + " of " + periods_selection);
+				!pres_AY_GMP(ipss) := GMP::Instance::CreatePresolved(AY_GMP(ipss), "pres_GMP_" + ipss);
+				!if not pres_AY_GMP(ipss) then raise warning "Could not presolve the GMP for period "+ipss; AIMMSWav(Failed); return; endif;
+				!GMP::Instance::SetSolver(pres_AY_GMP(ipss),SolverChoiceIYP);
 			
 				MathProgramParameters('Generation Time',run_numberState) := round(CurrentToMoment([minute],ReferenceTime_Generation),2);
 			
-				if pres_AY_GMP(ipss) then
-					AY_SolverSession(ipss) := GMP::Instance::CreateSolverSession(pres_AY_GMP(ipss),"SS_" + ipss);
-					ProgressWindow := GMP::SolverSession::CreateProgressCategory(AY_SolverSession(ipss));
-					GMP::Solution::RetrieveFromModel(pres_AY_GMP(ipss),1);
-					MathProgramParameters('Number of Constraints',run_numberState) := GMP::Instance::GetNumberOfRows(pres_AY_GMP(ipss));
-					MathProgramParameters('Number of Variables',run_numberState) := GMP::Instance::GetNumberOfColumns(pres_AY_GMP(ipss));
-					MathProgramParameters('Number of Nonzeros',run_numberState) := GMP::Instance::GetNumberOfNonzeros(pres_AY_GMP(ipss));
-				elseif AY_GMP(ipss) then
-					raise warning " ===== Presolving of period " + ipss +" failed. Solving the original GMP instead.";
+			!	if pres_AY_GMP(ipss) then
+			!		AY_SolverSession(ipss) := GMP::Instance::CreateSolverSession(pres_AY_GMP(ipss),"SS_" + ipss);
+			!		ProgressWindow := GMP::SolverSession::CreateProgressCategory(AY_SolverSession(ipss));
+			!		GMP::Solution::RetrieveFromModel(pres_AY_GMP(ipss),1);
+			!		MathProgramParameters('Number of Constraints',run_numberState) := GMP::Instance::GetNumberOfRows(pres_AY_GMP(ipss));
+			!		MathProgramParameters('Number of Variables',run_numberState) := GMP::Instance::GetNumberOfColumns(pres_AY_GMP(ipss));
+			!		MathProgramParameters('Number of Nonzeros',run_numberState) := GMP::Instance::GetNumberOfNonzeros(pres_AY_GMP(ipss));
+			!	elseif AY_GMP(ipss) then
+			!		raise warning " ===== Presolving of period " + ipss +" failed. Solving the original GMP instead.";
 					AY_SolverSession(ipss) := GMP::Instance::CreateSolverSession(AY_GMP(ipss),"SS_" + ipss);
 					ProgressWindow := GMP::SolverSession::CreateProgressCategory(AY_SolverSession(ipss));
 					GMP::Solution::RetrieveFromModel(AY_GMP(ipss),1);
 					MathProgramParameters('Number of Constraints',run_numberState) := GMP::Instance::GetNumberOfRows(AY_GMP(ipss));
 					MathProgramParameters('Number of Variables',run_numberState) := GMP::Instance::GetNumberOfColumns(AY_GMP(ipss));
 					MathProgramParameters('Number of Nonzeros',run_numberState) := GMP::Instance::GetNumberOfNonzeros(AY_GMP(ipss));
-				endif;
+			!	endif;
 			
 				GMP::Solution::SendToSolverSession(AY_SolverSession(ipss),1);
 				StatusMessage("T+IYP... AsynchronousExecute period: " + ipss + " of " + periods_selection);
@@ -8512,7 +8536,7 @@ Model IESA_Opt_Package {
 			! Write model version
 			MathProgramParameters('Model Version',1) := project_name;
 			
-			! Creat a directory for Output files
+			! Create a directory for Output files
 			if (DirectoryExists("Output/"+OutputFolderName) = 0) then DirectoryCreate("Output/"+OutputFolderName); endif;
 			
 			!Save the data file
