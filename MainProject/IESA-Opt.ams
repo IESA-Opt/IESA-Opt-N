@@ -526,6 +526,13 @@ Model IESA_Opt_Package {
 					{t |activityType_act(activityPer_tech(t))='Emission'}
 				}
 			}
+			Set tech_materialconversion {
+				SubsetOf: technologies;
+				Index: t_m;
+				Definition: {
+					{t |activityType_act(activityPer_tech(t))='Material conversion'}
+				}
+			}
 			Set nodes {
 				Index: n, jn;
 			}
@@ -952,6 +959,10 @@ Model IESA_Opt_Package {
 			Constraint actStock_constraints {
 				IndexDomain: (av,ps);
 				Definition: sum[t | activityPer_tech(t)=av, techStock(t,ps)*cap2act(t)+sum[h, deltaS_shed(h,t,ps)]]=activities_netVolumes(av,ps);
+			}
+			Constraint techStockCap_contraints_mat {
+				IndexDomain: (t_m,ps);
+				Definition: techStock(t_m,ps)*cap2act(t_m)+sum[h, deltaS_shed(h,t_m,ps)]>=tech_use(t_m,ps);
 			}
 			Constraint minStock_constraints {
 				IndexDomain: (t,ps);
@@ -2019,23 +2030,24 @@ Model IESA_Opt_Package {
 				SubsetOf: AllConstraints;
 				Definition: {
 					data 
-					    { balance_activities       , balance_activitiesFix    , balance_activitiesmatconv, capacity_technologies    ,
-					      emission_target          , emission_targetCum       , storageCO2_cumulative    , decomStock               ,
-					      techStock                , actStock_constraints     , minStock_constraints     , maxStock_constraints     ,
-					      actInv_constraints       , techInv_constraints      , retrofit_constraint      , decom_constraint         ,
-					      limit_new_invest         , balance_activitiesHourly , balance_yearlyhourly     , capacity_techHourly      ,
-					      rampingUP_techHourly     , rampingDW_techHourly     , deltaB_S                 , balance_activitiesDaily  ,
-					      balance_yearlyDaily      , capacity_techDaily       , balanceY_dB              , capacityUP_dB            ,
-					      capacityDW_dB            , cummulativeS_dB          , balanceH_deltaHchp       , balanceD_deltaHchp       ,
-					      balanceW_deltaHchp       , capacityUP_deltaUchp     , capacityDW_deltaUchp     , capacityUP_deltaPchp     ,
-					      capacityDW_deltaPchp     , deltaQ_S                 , deltaQd_UP               , deltaQd_DW               ,
-					      deltaW_S                 , balanceH_deltaS          , balanceW_deltaS          , capacity_deltaS          ,
-					      sufficiency_deltaS       , balanceQ_deltaQtfe       , balanceD_deltaQd         , balanceR_deltaQd         ,
-					      balanceW_deltaQd         , balanceM_deltaQd         , balanceS_deltaQd         , balanceB_deltaQd         ,
-					      balanceY_deltaQd         , capacityUP_dQtfe         , capacityUP_dQtfs         , capacityUP_dQtfb         ,
-					      capacityUP_dQtfv         , capacityUP_dW            , capacityDW_dQtfe         , capacityDW_dQtfs         ,
-					      capacityDW_dQtfb         , capacityDW_dQtfvc        , capacityDW_dQtfvg        , capacityDW_dW            ,
-					      nonPos_Shed              , infraVol_H               , infraVol_D               , totalCosts_planning      }
+					    { balance_activities         , balance_activitiesFix      , balance_activitiesmatconv  , capacity_technologies      ,
+					      emission_target            , emission_targetCum         , storageCO2_cumulative      , decomStock                 ,
+					      techStock                  , actStock_constraints       , techStockCap_contraints_mat, minStock_constraints       ,
+					      maxStock_constraints       , actInv_constraints         , techInv_constraints        , retrofit_constraint        ,
+					      decom_constraint           , limit_new_invest           , balance_activitiesHourly   , balance_yearlyhourly       ,
+					      capacity_techHourly        , rampingUP_techHourly       , rampingDW_techHourly       , deltaB_S                   ,
+					      balance_activitiesDaily    , balance_yearlyDaily        , capacity_techDaily         , balanceY_dB                ,
+					      capacityUP_dB              , capacityDW_dB              , cummulativeS_dB            , balanceH_deltaHchp         ,
+					      balanceD_deltaHchp         , balanceW_deltaHchp         , capacityUP_deltaUchp       , capacityDW_deltaUchp       ,
+					      capacityUP_deltaPchp       , capacityDW_deltaPchp       , deltaQ_S                   , deltaQd_UP                 ,
+					      deltaQd_DW                 , deltaW_S                   , balanceH_deltaS            , balanceW_deltaS            ,
+					      capacity_deltaS            , sufficiency_deltaS         , balanceQ_deltaQtfe         , balanceD_deltaQd           ,
+					      balanceR_deltaQd           , balanceW_deltaQd           , balanceM_deltaQd           , balanceS_deltaQd           ,
+					      balanceB_deltaQd           , balanceY_deltaQd           , capacityUP_dQtfe           , capacityUP_dQtfs           ,
+					      capacityUP_dQtfb           , capacityUP_dQtfv           , capacityUP_dW              , capacityDW_dQtfe           ,
+					      capacityDW_dQtfs           , capacityDW_dQtfb           , capacityDW_dQtfvc          , capacityDW_dQtfvg          ,
+					      capacityDW_dW              , nonPos_Shed                , infraVol_H                 , infraVol_D                 ,
+					      totalCosts_planning        }
 				}
 			}
 			Set activeConstraints_operation {
@@ -2073,7 +2085,7 @@ Model IESA_Opt_Package {
 							+sum[(t,jp), InvMat_lifeTime(t,jp,ps)*(
 							sum[(it,jt), retrofitting(it,jt,ps)*CRF(jt)*(retro_cost(it,jt)+p_epsilon)] !Retrofitting costs (based on Excel database input). Epsilon set to 0 to save memory, can be removed later if not needed.
 							)]
-							!-eco_decommisioning(t,jp)*(1-decom_frac(t))*inv_cost(t,jp)*annuity_fac(t) 	!Salvage value at end of lifetime (temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
+							!+sum[(t,jp),eco_decommisioning(t,jp)*inv_cost(t,jp)*.01]	!Salvage value at end of lifetime (this formulation includes 1% of CAPEX as penalty for early decommissioning)(temporarily removed, should be modelled with the possibility to consider a positive cost, a zero, or a "negative" cost representing recovered value)
 					
 							! FOM
 							+sum[(t), techStock(t,ps)*fom_cost(t,ps)] !Fixed costs
@@ -3351,7 +3363,7 @@ Model IESA_Opt_Package {
 						Ptech_useNet(t,p)
 						*(tech_sector(t)=z)
 						*(activityPer_tech(t)=as)
-						*IEM_node(nodePer_techBal(t))
+						!*IEM_node(nodePer_techBal(t))
 						*(t in tech_balancers)
 						*(namePer_node(nodePer_techBal(t))=nn)
 					elseif(tots='Infrastructure') then
@@ -3644,6 +3656,17 @@ Model IESA_Opt_Package {
 					)
 				}
 			}
+			Parameter energyUse_tech_mat {
+				IndexDomain: (n,tb,amc,p);
+				Definition: {
+					(nodePer_techBal(tb)=n)*
+					(Ptech_useNet(tb,p)*activity_balances(tb,amc,p)  !Reference activity balance
+					+sum[h, (PdeltaQ_UP(h,tb,p)+PdeltaQ_DW(h,tb,p))]*dQ_hourly(tb,amc) !Impact of flexibility in hourly activities
+					+sum[h, PdeltaP_CHP(h,tb,p)]*dP_electricity(tb,amc) !Impact in power of power output ratio deviation of CHp
+					+sum[h, -CHP_eta(tb)*PdeltaP_CHP(h,tb,p)/CHP_eps(tb,p)]*dP_heat(tb,amc) !Impact in heat of power output ratio deviation of CHp
+					)
+				}
+			}
 			Parameter energyUse_act {
 				IndexDomain: (nn,z,as,ae,p);
 				Definition: sum[(n,tb), (namePer_node(n)=nn)*(tech_sector(tb)=z)*(activityPer_tech(tb)=as)*energyUse_tech(n,tb,ae,p)];
@@ -3785,7 +3808,7 @@ Model IESA_Opt_Package {
 						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Final")*(labelPer_act(ae)<>'Material')]
 						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Emission")*(labelPer_act(ae)<>'Material')]
 						!-sum[(n,tb,ae), (energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)='Industry')*(tech_category(tb)="Conversion")*(labelPer_act(ae)='Material')]
-						!-sum[(n,tb,amc), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,amc,p)<0)*energyUse_tech(n,tb,amc,p)*(labelPer_act(amc)=itos)*(tech_sector(tb)='Industry')*(labelPer_act(amc)='Material')]
+						!-sum[(n,tb,amc), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech_mat(n,tb,amc,p)<0)*energyUse_tech_mat(n,tb,amc,p)*(labelPer_act(amc)=itos)*(tech_sector(tb)='Industry')*(labelPer_act(amc)='Material')]
 					
 					elseif (tou = 'Conversion') then
 						-sum[(n,tb,ae,iae)| (labelPer_act(ae)<>'Material'), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_sector(tb)='Waste Disposal')
