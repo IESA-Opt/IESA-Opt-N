@@ -3370,7 +3370,7 @@ Model IESA_Opt_Package {
 						Ptech_useNet(t,p)
 						*(tech_sector(t)=z)
 						*(infra_activity(t)=as)
-						*IEM_node(nodePer_techInfra(t))
+						!*IEM_node(nodePer_techInfra(t))
 						*(t in tech_infra)
 						*(namePer_node(nodePer_techInfra(t))=nn)
 					endif
@@ -3742,7 +3742,8 @@ Model IESA_Opt_Package {
 						-sum[n, (namePer_node(n)=nn)*feedstockUse_act(n,z,as,el,p)]*(el<>'Material')*(z<>'Waste') !(HARDCODED)
 					endif
 					!edited by Kira to correct for material flows
-					!added by Kira to correct for material conversion activities (need to finalize this with material conversion as activity type
+					!added by Kira to correct for material conversion activities
+					!corrected to remove international transport
 				}
 			}
 			Parameter finalEnergy_act {
@@ -3803,12 +3804,14 @@ Model IESA_Opt_Package {
 				IndexDomain: (nn,tou,itos,jtos,p);
 				Definition: {
 					!(HARDCODED)
-					!edited by Kira to account for material flows and allocation of material conversion to final industry sector - STILL NEEDS WORK
+					!edited by Kira to account for material flows and allocation of material conversion to final industry sector
 					if (tou = 'Final') then
 						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Final")*(labelPer_act(ae)<>'Material')]
 						-sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_category(tb)="Emission")*(labelPer_act(ae)<>'Material')]
 						!-sum[(n,tb,ae), (energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)='Industry')*(tech_category(tb)="Conversion")*(labelPer_act(ae)='Material')]
 						!-sum[(n,tb,amc), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech_mat(n,tb,amc,p)<0)*energyUse_tech_mat(n,tb,amc,p)*(labelPer_act(amc)=itos)*(tech_sector(tb)='Industry')*(labelPer_act(amc)='Material')]
+					 	- sum[(n,tb,ae), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(energyUse_tech(n,tb,ae,p)<0)*energyUse_tech(n,tb,ae,p)*(labelPer_act(ae)=itos)*(tech_sector(tb)=jtos)*(tech_sector(tb)='Industry')*(tech_category(tb)='Conversion')*(activityType_act(activityPer_tech(tb))='Material conversion')]
+					
 					
 					elseif (tou = 'Conversion') then
 						-sum[(n,tb,ae,iae)| (labelPer_act(ae)<>'Material'), IEM_node(n)*(namePer_node(n)=nn)*(nodePer_techBal(tb)=n)*(tech_sector(tb)='Waste Disposal')
