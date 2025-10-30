@@ -2,8 +2,8 @@
 <PageManager>
 	<Page Name="MainPage" PageGUID="33378451-8F41-413B-9351-0B8ED3C1C9BE">
 		<Page Name="Transition solving" PageGUID="0CD4B8EC-6D7F-401C-9B58-DDFEE71A6C56" />
-		<Page Name="Batch solving" PageGUID="9480DBF6-553C-4C9D-B06A-2236B8913D9F" />
-		<Page Name="Intra-year prices" PageGUID="70557880-7F02-4F14-B9C5-BC584B19EFBB" />
+		<Page Name="Sequential Batch solving" PageGUID="9480DBF6-553C-4C9D-B06A-2236B8913D9F" />
+		<Page Name="Parallel Batch solving" PageGUID="84761FE8-9D49-4F3F-A6E6-8F7F00491C68" />
 		<Page Name="Update output files" PageGUID="726CB277-5DEE-42CE-8125-5EC4B0228CE7" />
 	</Page>
 	<Page Name="All Data Pages" PageGUID="D8B269C8-38FF-4DA9-98C9-6319C7B93BEE">
@@ -75,7 +75,7 @@
 		<Page Name="[Data Page] profiles_3Dactivities" PageGUID="5532A5CA-FB5D-472C-871D-DD4F3C658C2A" Marked="true" />
 		<Page Name="[Data Page] Rprofiles_3Dactivities" PageGUID="EEF071C9-33A1-4042-AA13-47C21EC1F8C3" Marked="true" />
 		<Page Name="[Data Page] supplyAct_tech" PageGUID="9A03E45E-9D00-4EC3-BD1D-88B8A48336CE" />
-		<Page Name="[Data Page] demandAct_tech" PageGUID="438A4C10-FA68-4794-86EE-9E8BE9306651" Marked="true" />
+		<Page Name="[Data Page] demandAct_tech" PageGUID="438A4C10-FA68-4794-86EE-9E8BE9306651" />
 		<Page Name="[Data Page] supdemAct_tech" PageGUID="B0DEAB53-2014-422E-8B3F-081BBE4526DD" />
 		<Page Name="[Data Page] RsupdemAct_tech" PageGUID="E5DB9827-26F2-475B-812E-B7DC7C785365" Marked="true" />
 		<Page Name="[Data Page] energyUse_tech" PageGUID="94D56CF8-770A-4170-9923-CF72E0F942D5" />
@@ -207,5 +207,53 @@
 		<Page Name="[Data Page] vom_hourly" PageGUID="DD59072B-3D8C-420E-BC4E-C3049EFA502A" />
 		<Page Name="[Data Page] interconnected_pricesOrig" PageGUID="D7E3EF0C-96E1-43DF-BF5D-547BDFEC8247" />
 		<Page Name="[Data Page] activities_netVolumes" PageGUID="725F2943-5FDD-4782-B48A-D0252470D5AD" />
+		<Page Name="[Data Page] dummy" PageGUID="DFFC7B96-DB25-4027-B131-D166DEF7191F" Marked="true" />
+		<Page Name="[Data Page] balance_activities_Emissions" PageGUID="9C858079-CE8B-471B-9796-4FF5ED294813" />
+		<Page Name="[Data Page] emission_target" PageGUID="E810F0DC-DAF4-44B1-A777-F49D27C9A1D8" />
+		<Page Name="[Data Page] aasd" PageGUID="200BA73C-9514-49A2-BC03-B4BE1012A940" Marked="true" />
+		<Page Name="[Data Page] zzz" PageGUID="2EAD54BA-EBA0-4235-8135-240032157E78" Marked="true" />
+		<Page Name="[Data Page] feedstockUse_act" PageGUID="09E26857-5018-4D26-8663-3BEDD3916257" />
+		<Page Name="[Data Page] Remissions_tech" PageGUID="AB71A907-4C22-4153-BEA2-3DFF61BCA48B" />
+		<Page Name="[Data Page] energyUse_tech_mat" PageGUID="506CE28D-FC64-4629-8C47-ACBCD69CDC62" />
+		<Page Name="[Data Page] energyUse_sec" PageGUID="790FA25D-5E02-4961-850E-E9D2C53964CF" />
+		<Page Name="[Data Page] emissions_sec_kev" PageGUID="CA32EBA1-46FA-4014-A003-02388D1FAE82" />
+		<Page Name="[Data Page] MinLoad" PageGUID="2D0D35F1-D426-4BFC-BAAC-B367A513A2EB" />
+		<Page Name="[Data Page] capacity_techHourly" PageGUID="DA61324C-4568-4950-BD44-7CE4E5E1A98C" />
+		<Page Name="[Data Page] finalEnergy_matrix_kev" PageGUID="507A5A29-9235-464D-88F5-7245960A39FC" />
+		<Page Name="[Data Page] emissions_tech_kev" PageGUID="1806464F-446E-4951-9D52-D1AD1AE53BCB" />
+		<Page Name="[Data Page] finalEnergy_sec_kev" PageGUID="B3480B66-27C4-4A35-BD5D-C7B6C32DFD25" />
+		<Page Name="[Data Page] supdemAct_tech_name" PageGUID="13B61C01-D799-4677-B9C2-2DCFAC39DF1F" />
+		<Page Name="[Data Page] finalEnergy_actEL" PageGUID="44C37B43-819F-4DDD-9899-7D1E3EF2CF21" />
+		<Page Name="[Data Page] finalEnergy_act_kev" PageGUID="C1C21B98-C48D-482D-9CFB-1E83BA830AD1" />
+		<Page Name="[Data Page] finalEnergy_actEL_kev" PageGUID="EC03E0C5-D4D0-4800-BA30-64C4B64873FD" />
+		<Page Name="[Data Page] feedstockUse_sec_kev" PageGUID="660A2964-D037-463E-8A34-F534122624A3" />
+		<Page Name="[Data Page] finalEnergy_matrixAct_kev" PageGUID="4360F068-D1C8-443E-A2B0-876705A6D0B0" />
+		<Page Name="[Data Page] finalEnergy_secAct_kev" PageGUID="C582EB72-918C-4E66-A95C-8D11FAECB680" />
+		<Page Name="[Data Page] energyUse_sec_kev" PageGUID="87399F1C-15CD-4C7C-9316-9EC412520B01" />
+		<Page Name="[Data Page] Revenue_tech" PageGUID="44251F15-42FC-4D27-8455-8AB6AD13FBDD" />
+		<Page Name="[Data Page] capacityUP_deltaUchp" PageGUID="8D9ABA9C-3889-4943-928C-6FB4D0F799C1" />
+		<Page Name="[Data Page] emissions_act" PageGUID="2672D767-9B0F-45DF-8107-247582125D36" />
+		<Page Name="[Data Page] FinalInclB" PageGUID="55FC24A7-0F60-4ED4-BB1A-5503FA969F74" />
+		<Page Name="[Data Page] FinalExclB" PageGUID="219796F2-CE1E-460F-BDF9-31B4FB6E4003" />
+		<Page Name="[Data Page] TSC" PageGUID="C292965E-D669-4A4F-AC23-8DFA0CF859C2" />
+		<Page Name="[Data Page] Copy_supplyAct_tech" PageGUID="3D3470CE-3C5A-4967-A0EB-4B64DA497FC7" />
+		<Page Name="[Data Page] Copy_demandAct_tech" PageGUID="3561DF8B-5F3E-4411-8EC1-6E10C5D6938E" />
+		<Page Name="[Data Page] Copy_energyUse_act" PageGUID="372BE4C8-A1CF-44A2-B72E-BE04B6C0F4B0" />
+		<Page Name="[Data Page] FinalInclB_sec" PageGUID="8AA36EAA-DAD4-4435-A9AC-1747B566FC03" />
+		<Page Name="[Data Page] newparameter" PageGUID="9339EF14-7C4C-4F56-9748-107FDA51DEBC" Marked="true" />
+		<Page Name="[Data Page] LCOE_total" PageGUID="587A7338-C82F-4EC4-AD9A-713C9917E89C" Marked="true" />
+		<Page Name="[Data Page] LCOE_breakdown" PageGUID="92172304-B1A5-46B6-A74F-838CC1D2B94D" Marked="true" />
+		<Page Name="[Data Page] emission_targetCum" PageGUID="7B0F1498-F9AD-465B-8E01-8C6E1BBA3092" />
+		<Page Name="[Data Page] FinalExclB_sec" PageGUID="ECBD7757-5B1F-42C1-BD46-BFD7EB22707A" />
+		<Page Name="[Data Page] emissions_NL_sec" PageGUID="89478743-5D64-4485-925C-886BBE106D98" />
+		<Page Name="[Data Page] Copy1_demandAct_tech" PageGUID="7F673763-88CE-4779-970A-A7B0751F9BCE" Marked="true" />
+		<Page Name="[Data Page] calc_DMI" PageGUID="40CE80E4-FAFE-4C1E-910A-F110982F7AEE" Marked="true" />
+		<Page Name="[Data Page] calc_Bio_DMI" PageGUID="04A41112-EE3B-4567-B0FD-D837BB61F4B2" Marked="true" />
+		<Page Name="[Data Page] calc_circular_DMI" PageGUID="A808EA4B-EB03-435F-8CB3-0C5C51F6219A" Marked="true" />
+		<Page Name="[Data Page] calc_DMC" PageGUID="8B4FD55B-057F-430A-8938-02CF4FA557D6" Marked="true" />
+		<Page Name="[Data Page] balanceH_deltaS" PageGUID="F53CE315-2868-429F-BC2F-49996A333478" />
+		<Page Name="[Data Page] test" PageGUID="EDBAA2F2-BF94-4048-A606-0CE71F59F079" />
+		<Page Name="[Data Page] balance_activitiesDaily" PageGUID="DBAAD4D1-9E91-4624-8328-8CD9764186C1" />
+		<Page Name="[Data Page] tech_useHourly_violation" PageGUID="EA6B809A-8BD6-4FA7-966F-229EF9CBA32E" />
 	</Page>
 </PageManager>
