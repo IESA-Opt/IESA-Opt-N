@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2024-05-02 19:39:29">
+<Page Version="4000" TimeStamp="2024-08-16 08:27:01">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] supdemAct_tech"</Title>
+	<Title>"[Data Page] MinLoad"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,14 +97,25 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>BAB8F027-18D4-4F81-8BE5-53EF306DF877</ObjectUUID>
+		<ObjectUUID>791A95FC-3129-4625-8F64-85B7B68CF088</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">supdemAct_tech( nn, as, tob, tb, p )</Identifier>
+				<Identifier ID="4110">MinLoad( h, t, ps )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
+		<Indices>
+			<Suffix_Index>
+				<Explicit_Suffix>
+					<Suffix ID="6620">"ShadowPrice"</Suffix>
+				</Explicit_Suffix>
+				<Explicit_Suffix>
+					<Suffix ID="6620">"basic"</Suffix>
+				</Explicit_Suffix>
+				<Location_in_Initial_View ID="6660">"As Outer Index"</Location_in_Initial_View>
+			</Suffix_Index>
+		</Indices>
 		<General>
 			<Dense_Aggregation_restricts_to_Domain ID="1022">"Yes"</Dense_Aggregation_restricts_to_Domain>
 			<Save_Layout_State>
@@ -142,12 +153,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>supdemAct_tech</Symbol>
-			<Symbol>p</Symbol>
-			<Symbol>nn</Symbol>
-			<Symbol>as</Symbol>
-			<Symbol>tb</Symbol>
-			<Symbol>tob</Symbol>
+			<Symbol>MinLoad</Symbol>
+			<Symbol>h</Symbol>
+			<Symbol>t</Symbol>
+			<Symbol>ps</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>

@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2022-11-17 10:48:10">
-	<PageEditSize Type="Specified">
-		<Size Width="1200" Height="800" />
-	</PageEditSize>
+<Page Version="4000" TimeStamp="2025-04-29 12:33:43">
+	<PageEditSize Type="Inherited" />
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
 	<DockAtStartup>true</DockAtStartup>
 	<Positioning>Save Last Position</Positioning>
@@ -19,7 +17,7 @@
 		<KeepRatio>true</KeepRatio>
 	</PageObject>
 	<PageObject Type="Picture">
-		<Location top="390" left="90" bottom="450" right="882" />
+		<Location top="456" left="90" bottom="516" right="882" />
 		<FileName LiteralFileName="true">"Images\Banner of partner institutions.jpg"</FileName>
 		<Display>StretchOrShrink</Display>
 		<Center>true</Center>
@@ -73,49 +71,17 @@
 			</Action>
 			<Action Type="Run">
 				<RunWhat>SpecificProcecure</RunWhat>
-				<Procedure>REF2020_check</Procedure>
+				<Procedure>DefaultInputLocation</Procedure>
 				<AbortOnError>true</AbortOnError>
-			</Action>
-			<Action Type="Assignment">
-				<Identifier>Ref2020No_Hide</Identifier>
-				<AssignedValue>Ref2020_Hide</AssignedValue>
 			</Action>
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="216" left="546" bottom="264" right="888" />
-		<TabOrder>3</TabOrder>
-		<LeaveOnEnter>false</LeaveOnEnter>
-		<ButtonType>Text</ButtonType>
-		<Title>"Solve intra-year prices"</Title>
-		<BackgroundColor RGB="#dbdbdb" />
-		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
-		<ActionSequence>
-			<Action Type="Run">
-				<RunWhat>SpecificProcecure</RunWhat>
-				<Procedure>RetreiveExistingOutputFolders</Procedure>
-				<AbortOnError>true</AbortOnError>
-			</Action>
-			<Action Type="Assignment">
-				<Identifier>RunButton_Hide</Identifier>
-				<AssignedValue>1</AssignedValue>
-			</Action>
-			<Action Type="ClosePage" />
-			<Action Type="LinkedPage">
-				<Page PageGUID="70557880-7F02-4F14-B9C5-BC584B19EFBB" Name="Intra-year prices" />
-			</Action>
-			<Action Type="Assignment">
-				<Identifier>ReadButton_Hide</Identifier>
-				<AssignedValue>0</AssignedValue>
-			</Action>
-		</ActionSequence>
-	</PageObject>
-	<PageObject Type="Button">
-		<Location top="294" left="546" bottom="342" right="888" />
+		<Location top="288" left="90" bottom="336" right="432" />
 		<TabOrder>4</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
 		<ButtonType>Text</ButtonType>
-		<Title>"Update output files"</Title>
+		<Title>"Load case / Post-process results"</Title>
 		<BackgroundColor RGB="#dbdbdb" />
 		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
 		<ActionSequence>
@@ -139,11 +105,49 @@
 		</ActionSequence>
 	</PageObject>
 	<PageObject Type="Button">
-		<Location top="294" left="90" bottom="342" right="432" />
+		<Location top="288" left="546" bottom="336" right="888" />
 		<TabOrder>2</TabOrder>
 		<LeaveOnEnter>false</LeaveOnEnter>
 		<ButtonType>Text</ButtonType>
-		<Title>"Batch Solve"</Title>
+		<Title>"Parallel Batch Solve"</Title>
+		<BackgroundColor RGB="#dbdbdb" />
+		<ForegroundColor>
+			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
+		</ForegroundColor>
+		<Font GUID="F29DA1E4-64E8-4E46-8391-D2F15E4EC150" Name="Button content" />
+		<ActionSequence>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingOutputFolders</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="Run">
+				<RunWhat>SpecificProcecure</RunWhat>
+				<Procedure>RetreiveExistingInputFilesBatch</Procedure>
+				<AbortOnError>true</AbortOnError>
+			</Action>
+			<Action Type="ClosePage" />
+			<Action Type="LinkedPage">
+				<Page PageGUID="84761FE8-9D49-4F3F-A6E6-8F7F00491C68" Name="Parallel Batch solving" />
+			</Action>
+			<Action Type="UpdateIdentifier">
+				<Identifier>InputFilesSelectionBatch</Identifier>
+			</Action>
+		</ActionSequence>
+	</PageObject>
+	<PageObject Type="Text">
+		<Location top="18" left="636" bottom="72" right="876" />
+		<SourceType>StringParameter</SourceType>
+		<StringParameter>project_name</StringParameter>
+		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
+		<TextColor RGB="#000080" />
+	</PageObject>
+	<PageObject Type="Button">
+		<Location top="210" left="546" bottom="258" right="888" />
+		<TabOrder>3</TabOrder>
+		<LeaveOnEnter>false</LeaveOnEnter>
+		<ButtonType>Text</ButtonType>
+		<Title>"Sequential Batch Solve"</Title>
 		<BackgroundColor RGB="#dbdbdb" />
 		<ForegroundColor>
 			<UserColor GUID="9043B6BC-F2E6-4015-A940-74CD05E6AD57">black</UserColor>
@@ -162,41 +166,25 @@
 			</Action>
 			<Action Type="ClosePage" />
 			<Action Type="LinkedPage">
-				<Page PageGUID="9480DBF6-553C-4C9D-B06A-2236B8913D9F" Name="Batch solving" />
-			</Action>
-			<Action Type="Run">
-				<RunWhat>SpecificProcecure</RunWhat>
-				<Procedure>REF2020_check</Procedure>
-				<AbortOnError>true</AbortOnError>
-			</Action>
-			<Action Type="Assignment">
-				<Identifier>Ref2020No_Hide</Identifier>
-				<AssignedValue>Ref2020_Hide</AssignedValue>
+				<Page PageGUID="9480DBF6-553C-4C9D-B06A-2236B8913D9F" Name="Sequential Batch solving" />
 			</Action>
 			<Action Type="UpdateIdentifier">
-				<Identifier>InputFIlesSelection</Identifier>
+				<Identifier>InputFilesSelection</Identifier>
 			</Action>
 		</ActionSequence>
-	</PageObject>
-	<PageObject Type="Text">
-		<Location top="18" left="636" bottom="72" right="876" />
-		<SourceType>StringParameter</SourceType>
-		<StringParameter>project_name</StringParameter>
-		<Font GUID="694E7D6A-A810-46B3-8812-A36514F14155" Name="Content names" />
-		<TextColor RGB="#000080" />
 	</PageObject>
 	<UsedReferences>
 		<Model>
 			<Symbol>project_name</Symbol>
-			<Symbol>InputFIlesSelection</Symbol>
+			<Symbol>InputFilesSelection</Symbol>
+			<Symbol>InputFilesSelectionBatch</Symbol>
 			<Symbol>ReadButton_Hide</Symbol>
 			<Symbol>RunButton_Hide</Symbol>
-			<Symbol>Ref2020_Hide</Symbol>
-			<Symbol>Ref2020No_Hide</Symbol>
 			<Symbol>RetreiveExistingInputFiles</Symbol>
+			<Symbol>RetreiveExistingInputFilesBatch</Symbol>
 			<Symbol>RetreiveExistingOutputFolders</Symbol>
 			<Symbol>ApplyProjectName</Symbol>
-			<Symbol>REF2020_check</Symbol>
+			<Symbol>DefaultInputLocation</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>

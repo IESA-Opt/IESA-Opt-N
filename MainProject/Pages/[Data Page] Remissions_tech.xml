@@ -5,7 +5,7 @@
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] supdemAct_tech"</Title>
+	<Title>"[Data Page] Remissions_tech"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>BAB8F027-18D4-4F81-8BE5-53EF306DF877</ObjectUUID>
+		<ObjectUUID>C5CAD85A-7CFA-4DB3-9E21-5A0AE167A3A6</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">supdemAct_tech( nn, as, tob, tb, p )</Identifier>
+				<Identifier ID="4110">Remissions_tech( nn, z, as, tb, tn, ac, pnz )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,12 +142,14 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>supdemAct_tech</Symbol>
-			<Symbol>p</Symbol>
+			<Symbol>Remissions_tech</Symbol>
+			<Symbol>z</Symbol>
 			<Symbol>nn</Symbol>
+			<Symbol>tn</Symbol>
 			<Symbol>as</Symbol>
+			<Symbol>ac</Symbol>
 			<Symbol>tb</Symbol>
-			<Symbol>tob</Symbol>
+			<Symbol>pnz</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>

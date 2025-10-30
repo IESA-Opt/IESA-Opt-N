@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2021-10-19 19:47:44">
+<Page Version="4000" TimeStamp="2025-04-29 12:33:43">
 	<Location top="32" left="70" bottom="638" right="1276" />
-	<PageEditSize Type="Specified">
-		<Size Width="1200" Height="700" />
-	</PageEditSize>
+	<PageEditSize Type="Inherited" />
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
 	<DockAtStartup>true</DockAtStartup>
 	<TemplatesTabOrderPosition>1</TemplatesTabOrderPosition>
@@ -152,7 +150,7 @@
 		<TabOrder>6</TabOrder>
 		<Font GUID="62856B5B-F49A-45D1-8E48-0B86711BC7F1" Name="Content parameters small" />
 		<TextShown>ElementName</TextShown>
-		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
+		<Border Style="None" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<BackgroundColor RGB="#ffffff" />
 		<ExplicitIdentifier>
 			<Identifier>HourlyReportValue</Identifier>
@@ -173,10 +171,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
+			<Symbol>YesNo</Symbol>
 			<Symbol>PostProcess_andWrite</Symbol>
 			<Symbol>project_name</Symbol>
 			<Symbol>OutputFolderOptions</Symbol>
-			<Symbol>YesNoOptions</Symbol>
 			<Symbol>DataCasesSet</Symbol>
 			<Symbol>OutputFolderValue</Symbol>
 			<Symbol>DataCaseLocation</Symbol>

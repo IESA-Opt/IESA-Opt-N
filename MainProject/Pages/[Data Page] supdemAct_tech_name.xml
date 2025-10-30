@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2024-05-02 19:39:29">
+<Page Version="4000" TimeStamp="2025-06-05 19:42:12">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] supdemAct_tech"</Title>
+	<Title>"[Data Page] supdemAct_tech_name"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>BAB8F027-18D4-4F81-8BE5-53EF306DF877</ObjectUUID>
+		<ObjectUUID>C8062A1F-9FB7-40D7-9040-C039AED60AD1</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">supdemAct_tech( nn, as, tob, tb, p )</Identifier>
+				<Identifier ID="4110">supdemAct_tech_name( nn, as, tob, tb, tn, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,9 +142,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>supdemAct_tech</Symbol>
+			<Symbol>supdemAct_tech_name</Symbol>
 			<Symbol>p</Symbol>
 			<Symbol>nn</Symbol>
+			<Symbol>tn</Symbol>
 			<Symbol>as</Symbol>
 			<Symbol>tb</Symbol>
 			<Symbol>tob</Symbol>
