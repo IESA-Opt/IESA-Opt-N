@@ -5,7 +5,7 @@
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] activity_balances"</Title>
+	<Title>"[Data Page] balanceH_deltaS"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,14 +97,25 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>4381D976-972E-48EE-8AF7-E620DB597002</ObjectUUID>
+		<ObjectUUID>E5755300-6C93-435F-B912-5BDE61A21CE7</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">activity_balances( tb, as, p )</Identifier>
+				<Identifier ID="4110">balanceH_deltaS( h, ts_h, ps )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
+		<Indices>
+			<Suffix_Index>
+				<Explicit_Suffix>
+					<Suffix ID="6620">"ShadowPrice"</Suffix>
+				</Explicit_Suffix>
+				<Explicit_Suffix>
+					<Suffix ID="6620">"basic"</Suffix>
+				</Explicit_Suffix>
+				<Location_in_Initial_View ID="6660">"As Outer Index"</Location_in_Initial_View>
+			</Suffix_Index>
+		</Indices>
 		<General>
 			<Dense_Aggregation_restricts_to_Domain ID="1022">"Yes"</Dense_Aggregation_restricts_to_Domain>
 			<Save_Layout_State>
@@ -142,10 +153,10 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>activity_balances</Symbol>
-			<Symbol>p</Symbol>
-			<Symbol>as</Symbol>
-			<Symbol>tb</Symbol>
+			<Symbol>balanceH_deltaS</Symbol>
+			<Symbol>h</Symbol>
+			<Symbol>ps</Symbol>
+			<Symbol>ts_h</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>

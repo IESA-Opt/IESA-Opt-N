@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2025-04-24 07:09:24">
+<Page Version="4000" TimeStamp="2024-08-16 08:27:01">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
 	</PageEditSize>
 	<ProjectUUID>956F6330-FAE1-4841-A634-37A60C1052C8</ProjectUUID>
-	<Title>"[Data Page] activity_balances"</Title>
+	<Title>"[Data Page] emissions_tech_kev"</Title>
 	<ResizeData>
 		<MainArea Line="FixedFromRight" Value="81">
 			<LeftArea Line="FixedFromTop" Value="10" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>4381D976-972E-48EE-8AF7-E620DB597002</ObjectUUID>
+		<ObjectUUID>75C6008C-8EE4-412E-999E-0C719753843B</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">activity_balances( tb, as, p )</Identifier>
+				<Identifier ID="4110">emissions_tech_kev( nn, zk, as, tb, tn, aer, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,9 +142,13 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
-			<Symbol>activity_balances</Symbol>
+			<Symbol>emissions_tech_kev</Symbol>
 			<Symbol>p</Symbol>
+			<Symbol>zk</Symbol>
+			<Symbol>nn</Symbol>
+			<Symbol>tn</Symbol>
 			<Symbol>as</Symbol>
+			<Symbol>aer</Symbol>
 			<Symbol>tb</Symbol>
 		</Model>
 	</UsedReferences>

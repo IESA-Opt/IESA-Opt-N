@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Page Version="4000" TimeStamp="2021-11-18 18:21:37">
+<Page Version="4000" TimeStamp="2024-07-24 14:34:44">
 	<Location top="30" left="30" bottom="540" right="600" />
 	<PageEditSize Type="Inherited">
 		<Size Width="600" Height="540" />
@@ -97,12 +97,12 @@
 	<PageObject Type="Pivot Table">
 		<Location top="10" left="10" bottom="530" right="510" />
 		<TabOrder>6</TabOrder>
-		<ObjectUUID>E2C5A2EC-190A-4C56-AE35-5C0DA716104F</ObjectUUID>
+		<ObjectUUID>E7E8800D-70A8-4FB5-A347-B53BE46E4197</ObjectUUID>
 		<Font GUID="00000000-0000-0000-0000-000000000001" Name="text" />
 		<Border Style="InShadow" Width="2" MarginTop="5" MarginRight="5" MarginBottom="5" MarginLeft="5" />
 		<Contents>
 			<Explicit_Identifier>
-				<Identifier ID="4110">emissions_tech( nn, z, as, tb, ac, p )</Identifier>
+				<Identifier ID="4110">emissions_tech( nn, z, as, tb, tn, aer, p )</Identifier>
 			</Explicit_Identifier>
 		</Contents>
 		<General>
@@ -142,13 +142,14 @@
 	</PageObject>
 	<UsedReferences>
 		<Model>
+			<Symbol>emissions_tech</Symbol>
 			<Symbol>p</Symbol>
 			<Symbol>z</Symbol>
 			<Symbol>nn</Symbol>
+			<Symbol>tn</Symbol>
 			<Symbol>as</Symbol>
-			<Symbol>ac</Symbol>
+			<Symbol>aer</Symbol>
 			<Symbol>tb</Symbol>
-			<Symbol>emissions_tech</Symbol>
 		</Model>
 	</UsedReferences>
 </Page>
