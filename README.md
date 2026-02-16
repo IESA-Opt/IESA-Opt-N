@@ -18,6 +18,8 @@ The energy infrastructure is modeled in ten networks for different voltage level
 
 The IESA-Opt model reflects the emission constraints of the EU Emission Trading System (ETS), the non-ETS sectors, and the international navigation and aviation sectors. Since ETS sector emissions are traded in the EU ETS market, we assume an exogenous ETS emission price projection as a scenario parameter. Because the national emission reduction policy targets both ETS and non-ETS sectors, we set the aggregate national emission constraint on both sectors. If the constraint is binding, the model generates an aggregated national emission shadow price, equal to the marginal increase in the system cost if the aggregated emission constraint gets one unit tighter. 
 
+The "Materials" branch of this repository contains the IESA-Opt-N model with a few modifications to allow for circularity targets to be modelled. In particular, constraints and parameters related to material flows are added, and corresponding fields are added in the data input files. The structure of the optimization remains the same, with no changes to objective function or the overall logic of the model. Material flows are treated identically to energy flows, except that they are subject to additional constraints.
+
 ### The IESA-Opt-N model
 Although IESA-Opt comes with several capabilities, it has some limitations. Therefore, this study modifies the model in two directions: objective function definition and cross-border electricity trade. The modified model is IESA-Opt-N, which stands for Integrated Energy System Analyses – Optimization – National.  
 
