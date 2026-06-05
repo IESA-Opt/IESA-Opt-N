@@ -2396,13 +2396,18 @@ Model IESA_Opt_Package {
 			}
 			Set DMIConstraints {
 				SubsetOf: AllConstraints;
-				Definition: data { DMI_constraint};
+				Definition: {
+					data { DMI_constraint, 
+					Bio_share_DMI,
+					total_DMI_reduction}
+				}
 			}
 			Set DMIConstraintswithoutEmissions {
 				SubsetOf: AllConstraints;
 				Definition: {
 					data 
-					    { DMI_constraint,
+					    { DMI_constraint, Bio_share_DMI,
+					total_DMI_reduction,
 					    	balance_activities                                   , balance_activitiesFix                                ,
 					      balance_activities_matconv                           , balance_activities_emissionsFix                      ,
 					      capacity_technologies,  			 storageCO2_cumulative                                ,
@@ -2909,13 +2914,13 @@ Model IESA_Opt_Package {
 				InitialData: 1e-4;
 			}
 			Parameter Feasibility_tolerance {
-				InitialData: 1e-09;
+				InitialData: 1e-04;
 			}
 			Parameter Optimality_tolerance {
-				InitialData: 1e-09;
+				InitialData: 1e-04;
 			}
 			Parameter BarrierConvergence_tolerance {
-				InitialData: 1e-7;
+				InitialData: 1e-4;
 			}
 		}
 		Procedure GMP_details {
@@ -2966,11 +2971,11 @@ Model IESA_Opt_Package {
 				option progress_time_interval := 10 ;
 				
 				! Set options to default
-				option "GUROBI 12.0".Method := 1 ;
+				option "GUROBI 12.0".Method := 2 ;
 				option "GUROBI 12.0".Numeric_focus := 3 ; !2 default
 				option "GUROBI 12.0".Log_to_console := 1 ;
 				option "GUROBI 12.0".Output_file := 1 ;
-				option "GUROBI 12.0".Presolve := 0 ; !-1 default
+				option "GUROBI 12.0".Presolve := -1 ; !-1 default
 				option "GUROBI 12.0".Presolve_aggregation := 1 ;
 				option "GUROBI 12.0".Presolve_aggregation_fill := -1 ;
 				option "GUROBI 12.0".Presolve_dual := -1 ;
@@ -3024,11 +3029,11 @@ Model IESA_Opt_Package {
 				endif;
 				
 				! Set options to default
-				option "GUROBI 13.0".Method := 1 ;
+				option "GUROBI 13.0".Method := -1 ;
 				option "GUROBI 13.0".Numeric_focus := 3 ; !2 default
 				option "GUROBI 13.0".Log_to_console := 1 ;
 				option "GUROBI 13.0".Output_file := 1 ;
-				option "GUROBI 13.0".Presolve := 0 ; !-1 default
+				option "GUROBI 13.0".Presolve := 1 ; !-1 default
 				option "GUROBI 13.0".Presolve_aggregation := 1 ;
 				option "GUROBI 13.0".Presolve_aggregation_fill := -1 ;
 				option "GUROBI 13.0".Presolve_dual := -1 ;
@@ -3047,14 +3052,14 @@ Model IESA_Opt_Package {
 					! Options for 24h runs
 					option "GUROBI 13.0".Barrier_crossover := 0;
 					if (SolveMethodChoice = 'Barrier') then 
-						option "GUROBI 13.0".Method := 2 ;
+						option "GUROBI 13.0".Method := 2 ; !2 is default
 					elseif (SolveMethodChoice = 'Concurrent') then
 						option "GUROBI 13.0".Method := 3 ;
 					endif;
 					option "GUROBI 13.0".Numeric_focus := 3 ;
 					option "GUROBI 13.0".Log_to_console := 1 ;
 					option "GUROBI 13.0".Output_file := 1 ;
-					option "GUROBI 13.0".Presolve := -1 ;
+					option "GUROBI 13.0".Presolve := 1 ; !1 is default (normal), 2 is aggressive
 					option "GUROBI 13.0".Presolve_aggregation := 2 ;
 					option "GUROBI 13.0".Presolve_aggregation_fill := 5 ;
 					option "GUROBI 13.0".Presolve_dual := 0 ;
@@ -10722,11 +10727,8 @@ Model IESA_Opt_Package {
 			Parameter test {
 				IndexDomain: ps;
 				Definition: {
-					sum[(tb,act), tech_use(tb,ps)*activity_balances(tb,act,ps)]+  !Reference activity balance (ETS/non-ETS emissions)
-					sum[(tk,act), sum[h, deltaU_CHP(h,tk,ps)]*activity_balances(tk,act,ps)]+ !Impact of use deviation of CHPs
-					sum[(ts,act), sum[h, deltaS_shed(h,ts,ps)]*activity_balances(ts,act,ps)]+ !Impact of shedding load
-					sum[(tb,atf), tech_use(tb,ps)*activity_balances(tb,atf,ps)]+  !Reference activity balance (feedstock/end of life exported fuels)
-					sum[(tb,atb), tech_use(tb,ps)*activity_balances(tb,atb,ps)]  !Reference activity balance (bunkers)
+					sum[admi, sum[t, (tech_category(t)="Primary")*(activityPer_tech(t)=admi)
+					                       * tech_use(t,ps) * activity_balances(t,admi,ps) / LHV(admi,ps)]]
 				}
 			}
 			Constraint Adapt_SectoTarget_emi_R {
@@ -12108,6 +12110,29 @@ Model IESA_Opt_Package {
 					!target values for all years >=2030
 					-DMI_target(ps) -1e-3
 					<= 0;
+				}
+			}
+			Constraint Bio_share_DMI {
+				IndexDomain: ps | ps='2040';
+				Definition: {
+					sum[abio, sum[t, (tech_category(t)="Primary")*(activityPer_tech(t)=abio)
+					              * tech_use(t,ps) * activity_balances(t,abio,ps) / LHV(abio,ps)]]
+					+
+					sum[aeol, sum[t, (tech_category(t)="Primary")*(activityPer_tech(t)=aeol)
+					              * tech_use(t,ps) * activity_balances(t,aeol,ps) / LHV(aeol,ps)]]
+					>=
+					sum[admi,sum[t, (tech_category(t)="Primary")*(activityPer_tech(t)=admi)*tech_use(t,ps)*activity_balances(t,admi,ps)]
+					/
+					LHV(admi,ps)]*0.45
+				}
+			}
+			Constraint total_DMI_reduction {
+				IndexDomain: ps | ps='2040';
+				Definition: {
+					sum[admi, sum[t, (tech_category(t)="Primary")*(activityPer_tech(t)=admi)
+					                       * tech_use(t,ps) * activity_balances(t,admi,ps) / LHV(admi,ps)]]
+					<=
+					158.1
 				}
 			}
 			Parameter calc_Bio_DMI {
